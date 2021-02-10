@@ -348,7 +348,7 @@ class Crossword:
         i = n
         while self.cell(self.cursor_y+i, self.cursor_x) == '#' and self.cursor_y+i >= 0 and self.cursor_y+i < self.nrows-1:
             i += n
-        if self.cursor_y+i < 0 or self.cursor_y+i >= self.nrows:
+        if self.cell(self.cursor_y+i, self.cursor_x) == '#' or self.cursor_y+i < 0 or self.cursor_y+i >= self.nrows:
             return
         self.cursor_y += i
 
@@ -356,7 +356,7 @@ class Crossword:
         i = n
         while self.cell(self.cursor_y, self.cursor_x+i) == '#' and self.cursor_x+i >= 0 and self.cursor_x+i < self.ncols:
             i += n
-        if self.cursor_x+i < 0 or self.cursor_x+i >= self.ncols:
+        if self.cell(self.cursor_y, self.cursor_x+i) == '#' or self.cursor_x+i < 0 or self.cursor_x+i >= self.ncols:
             return
         self.cursor_x += i
 
