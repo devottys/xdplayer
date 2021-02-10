@@ -5,6 +5,9 @@ import string
 import curses
 from collections import namedtuple, defaultdict
 
+UNFILLED = '.'
+UNSOLVED_EXT = '.unsolved'
+
 def getkeystroke(scr):
     k = scr.get_wch()
     if isinstance(k, str):
@@ -95,6 +98,7 @@ class AttrDict(dict):
 
 class Crossword:
     def __init__(self, fn):
+        self.fn = fn
         contents = open(fn).read()
         metastr, gridstr, cluestr, *notestr = contents.split('\n\n\n')
 
@@ -106,14 +110,17 @@ class Crossword:
         self.filldir = 'A'
         self.solution = gridstr.splitlines()
         self.grid = [
-                [ '#' if x == '#' else '.' for x in row ]
-                    for row in self.solution 
+                [ '#' if x == '#' else (x if fn.endswith(UNSOLVED_EXT) else UNFILLED) for x in row ]
+                    for row in self.solution
                 ]
         self.acr_clues = {}
         self.down_clues = {}
         for clue in cluestr.splitlines():
             if clue:
-                clue, answer = clue.split(' ~ ')
+                if ' ~ ' in clue:
+                    clue, answer = clue.split(' ~ ')
+                else:
+                    answer = ''
                 dirnum, clue = clue.split('. ', maxsplit=1)
                 dir, num = dirnum[0], int(dirnum[1:])
                 cluetuple = (dir, num, clue, answer)
@@ -248,7 +255,7 @@ class Crossword:
                         ch = self.solution[y][x]
                     else:
                         ch = self.grid[y][x]
-                        if ch == '.': ch = d.unsolved_char
+                        if ch == UNFILLED: ch = d.unsolved_char
 
                     ch2 = d.inside_vline
 
@@ -353,6 +360,35 @@ class Crossword:
             return
         self.cursor_x += i
 
+    def cursorMove(self, n):
+        if self.filldir == 'A':
+            self.cursorRight(n)
+        else:
+            self.cursorDown(n)
+
+    def save(self):
+        fn = self.fn
+        if not fn.endswith(UNSOLVED_EXT):
+            fn += UNSOLVED_EXT
+        with open(fn, 'w') as fp:
+            for y, (k, v) in enumerate(self.meta.items()):
+                fp.write('%s: %s\n' % (k,v))
+            fp.write('\n\n')
+
+            for y, line in enumerate(self.grid):
+                fp.write(''.join(line)+'\n')
+            fp.write('\n\n')
+
+            for clue in self.acr_clues.values():
+                dir, num, cluestr, answer = clue
+                fp.write(f'{dir}{num}. {cluestr}\n')
+            fp.write('\n')
+
+            for clue in self.down_clues.values():
+                dir, num, cluestr, answer = clue
+                fp.write(f'{dir}{num}. {cluestr}\n')
+
+
 class CrosswordPlayer:
     def __init__(self):
         self.statuses = []
@@ -397,14 +433,22 @@ class CrosswordPlayer:
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
-            return 
+            return
 
+        elif k == 'KEY_BACKSPACE':  # back up and erase
+            xd.cursorMove(-1)
+            xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
+        elif k == ' ':  # erase and advance
+            xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
+            xd.cursorMove(+1)
+        elif k == 'KEY_DC':  # erase in place
+            xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
+        elif k == '^S':
+            xd.save()
+            self.status('saved')
         elif k.upper() in string.ascii_uppercase:
             xd.grid[xd.cursor_y][xd.cursor_x] = k.upper()
-            if xd.filldir == 'A':
-                xd.cursorRight(1)
-            else:
-                xd.cursorDown(1)
+            xd.cursorMove(+1)
 
         if opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
