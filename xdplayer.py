@@ -408,6 +408,7 @@ class CrosswordPlayer:
             xd.draw_hotkeys(scr)
         k = getkeystroke(scr)
         if k == 'q': return True
+        if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
 
         scr.clear()
