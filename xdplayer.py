@@ -135,12 +135,12 @@ class Crossword:
         global grid_bottom, grid_right, grid_top, grid_left
         global acrclueleft, downclueleft, clue_top
         grid_left = 4
-        grid_top = len(self.meta)+2
+        grid_top = len(self.meta)+1
         grid_bottom = grid_top + self.nrows
         grid_right = grid_left + self.ncols*2
-        acrclueleft = 40
-        downclueleft = 40
-        clue_top = grid_top
+        acrclueleft = 4
+        downclueleft = 4
+        clue_top = grid_bottom+1
 
 
         self.options = AttrDict(
@@ -310,7 +310,7 @@ class Crossword:
         i = dirnums.index(cursor_across)
         y=0
         for clue in dirnums[max(i-n//2,0):]:
-            if y > n:
+            if y >= n:
                 break
             dir, num, cluestr, answer = clue
             if cursor_across == clue:
@@ -446,12 +446,12 @@ class CrosswordPlayer:
         elif k == '^S':
             xd.save()
             self.status('saved')
+        elif opt.hotkeys and k in xd.hotkeys:
+            opt.cycle(xd.hotkeys[k])
         elif k.upper() in string.ascii_uppercase:
             xd.grid[xd.cursor_y][xd.cursor_x] = k.upper()
             xd.cursorMove(+1)
 
-        if opt.hotkeys and k in xd.hotkeys:
-            opt.cycle(xd.hotkeys[k])
 
 
 def main(scr):
