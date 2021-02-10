@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import string
 import curses
 from collections import namedtuple, defaultdict
 
@@ -102,6 +103,7 @@ class Crossword:
             k, v = line.split(':', maxsplit=1)
             self.meta[k.strip()] = v.strip()
 
+        self.filldir = 'A'
         self.solution = gridstr.splitlines()
         self.grid = [
                 [ '#' if x == '#' else '.' for x in row ]
@@ -242,7 +244,12 @@ class Crossword:
                     ch = d.midblankch
                     ch2 = d.midblankch if x < len(row)-1 and row[x+1] == '#' else d.leftblankch
                 else:
-                    ch = self.solution[y][x] if d.solved else d.unsolved_char
+                    if d.solved:
+                        ch = self.solution[y][x]
+                    else:
+                        ch = self.grid[y][x]
+                        if ch == '.': ch = d.unsolved_char
+
                     ch2 = d.inside_vline
 
                     words = self.pos[(y,x)]
@@ -387,9 +394,17 @@ class CrosswordPlayer:
         elif k == 'KEY_UP': xd.cursorDown(-1)
         elif k == 'KEY_LEFT': xd.cursorRight(-1)
         elif k == 'KEY_RIGHT': xd.cursorRight(+1)
+        elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return 
+
+        elif k.upper() in string.ascii_uppercase:
+            xd.grid[xd.cursor_y][xd.cursor_x] = k.upper()
+            if xd.filldir == 'A':
+                xd.cursorRight(1)
+            else:
+                xd.cursorDown(1)
 
         if opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
