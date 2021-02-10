@@ -107,11 +107,18 @@ class Crossword:
                 [ '#' if x == '#' else '.' for x in row ]
                     for row in self.solution 
                 ]
-        self.clues = []
+        self.acr_clues = {}
+        self.down_clues = {}
         for clue in cluestr.splitlines():
             if clue:
                 clue, answer = clue.split(' ~ ')
-                self.clues.append(clue)
+                dirnum, clue = clue.split('. ', maxsplit=1)
+                dir, num = dirnum[0], int(dirnum[1:])
+                cluetuple = (dir, num, clue, answer)
+                if dir == 'A':
+                    self.acr_clues[dirnum] = cluetuple
+                else:
+                    self.down_clues[dirnum] = cluetuple
 
         self.cursor_x = 0
         self.cursor_y = 0
@@ -127,6 +134,7 @@ class Crossword:
             curattr = ['reverse 217'],
             curacrattr = ['reverse 125'],
             curdownattr = ['reverse 74'],
+            clueattr = ['7'],
 
             topch = '▁_',
             topattr = ['', 'underline'],
@@ -154,9 +162,9 @@ class Crossword:
         for dir, num, answer, r, c in self.iteranswers_full():
             for i in range(len(answer)):
                 if dir == 'A':
-                    self.pos[(r,c+i)].append((dir, num, answer))
+                    self.pos[(r,c+i)].append(self.acr_clues[f'{dir}{num}'])
                 else:
-                    self.pos[(r+i,c)].append((dir, num, answer))
+                    self.pos[(r+i,c)].append(self.down_clues[f'{dir}{num}'])
 
     def cell(self, r, c):
         if r < 0 or c < 0 or r >= len(self.grid) or c >= len(self.grid[0]):
@@ -199,11 +207,12 @@ class Crossword:
                 if new_clue:
                     clue_num += 1
 
-    def draw_meta(self, scr):
+    def draw(self, scr):
+        # draw meta
         for y, (k, v) in enumerate(self.meta.items()):
             scr.addstr(y, 0, '%s: %s' %(k,v))
 
-    def draw_grid(self, scr=None):
+        # draw grid
         d = self.options
         cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
         if cursor_words:
@@ -211,6 +220,7 @@ class Crossword:
         else:
             cursor_across, cursor_down = None, None
 
+        cursor_clues = set()
         for y, row in enumerate(self.grid):
             for x, ch in enumerate(row):
                 attr = d.rowattr
@@ -268,16 +278,27 @@ class Crossword:
 
             scr.move(0,0)
 
-    def draw_clues(self, scr):
-        for y, clue in enumerate(self.clues):
-            scr.addstr(grid_bottom+y+1, 1, clue)
-            if y > 5: break
+        n = 2
+        # draw clues around both cursors
+        dirnums = list(self.acr_clues.values())
+        i = dirnums.index(cursor_across)
+        for y, clue in enumerate(dirnums[max(i-n,0):i+n]):
+            dir, num, cluestr, answer = clue
+            if cursor_across == clue:
+                attr = d.curacrattr
+            else:
+                attr = d.clueattr
+            scr.addstr(grid_bottom+y+1, 1, f'{dir}{num}. {cluestr}', attr)
 
-    def draw(self, scr):
-        self.draw_meta(scr)
-        self.draw_grid(scr)
-        self.draw_clues(scr)
-
+        dirnums = list(self.down_clues.values())
+        i = dirnums.index(cursor_down)
+        for y, clue in enumerate(dirnums[max(i-n,0):i+n]):
+            dir, num, cluestr, answer = clue
+            if cursor_down == clue:
+                attr = d.curdownattr
+            else:
+                attr = d.clueattr
+            scr.addstr(grid_bottom+y+1, 40, f'{dir}{num}. {cluestr}', attr)
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
