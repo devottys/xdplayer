@@ -126,8 +126,8 @@ class Crossword:
         global grid_bottom, grid_right, grid_top, grid_left
         grid_left = 4
         grid_top = len(self.meta)+1
-        grid_bottom = grid_top + len(self.grid)
-        grid_right = grid_left + len(self.grid[0])*2
+        grid_bottom = grid_top + self.nrows
+        grid_right = grid_left + self.ncols*2
 
         self.options = AttrDict(
             rowattr = ['', 'underline'],
@@ -166,8 +166,16 @@ class Crossword:
                 else:
                     self.pos[(r+i,c)].append(self.down_clues[f'{dir}{num}'])
 
+    @property
+    def nrows(self):
+        return len(self.grid)
+
+    @property
+    def ncols(self):
+        return len(self.grid[0])
+
     def cell(self, r, c):
-        if r < 0 or c < 0 or r >= len(self.grid) or c >= len(self.grid[0]):
+        if r < 0 or c < 0 or r >= self.nrows or c >= self.ncols:
             return '#'
         return self.solution[r][c]
 
@@ -268,8 +276,8 @@ class Crossword:
 
 
         if scr:
-            scr.addstr(grid_top-1, grid_left, d.topch*(len(self.grid[0])*2-1), d.topattr)
-            scr.addstr(grid_bottom,grid_left, d.botch*(len(self.grid[0])*2-1), d.rowattr | d.botattr)
+            scr.addstr(grid_top-1, grid_left, d.topch*(self.ncols*2-1), d.topattr)
+            scr.addstr(grid_bottom,grid_left, d.botch*(self.ncols*2-1), d.rowattr | d.botattr)
 
             scr.addstr(grid_top-1, grid_left-1, d.ulch)
             scr.addstr(grid_bottom,grid_left-1, d.blch)
@@ -310,6 +318,21 @@ class Crossword:
             scr.addstr(grid_top+y, 45, k)
             scr.addstr(grid_top+y, 60, ' '.join(map(str, v)))
 
+    def cursorDown(self, n):
+        i = n
+        while self.cell(self.cursor_y+i, self.cursor_x) == '#':
+            i += n
+        if self.cursor_y+i < 0 or self.cursor_y+i > self.nrows:
+            return
+        self.cursor_y += i
+
+    def cursorRight(self, n):
+        i = n
+        while self.cell(self.cursor_x+i, self.cursor_x) == '#':
+            i += n
+        if self.cursor_x+i < 0 or self.cursor_x+i > self.nrows:
+            return
+        self.cursor_x += i
 
 class CrosswordPlayer:
     def __init__(self):
@@ -347,10 +370,10 @@ class CrosswordPlayer:
             else:
                 self.status('not on grid')
 
-        elif k == 'KEY_DOWN': xd.cursor_y += 1
-        elif k == 'KEY_UP': xd.cursor_y -= 1
-        elif k == 'KEY_LEFT': xd.cursor_x -= 1
-        elif k == 'KEY_RIGHT': xd.cursor_x += 1
+        elif k == 'KEY_DOWN': xd.cursorDown(+1)
+        elif k == 'KEY_UP': xd.cursorDown(-1)
+        elif k == 'KEY_LEFT': xd.cursorRight(-1)
+        elif k == 'KEY_RIGHT': xd.cursorRight(+1)
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return 
