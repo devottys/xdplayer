@@ -124,10 +124,15 @@ class Crossword:
         self.cursor_y = 0
 
         global grid_bottom, grid_right, grid_top, grid_left
+        global acrclueleft, downclueleft, clue_top
         grid_left = 4
-        grid_top = len(self.meta)+1
+        grid_top = len(self.meta)+2
         grid_bottom = grid_top + self.nrows
         grid_right = grid_left + self.ncols*2
+        acrclueleft = 40
+        downclueleft = 40
+        clue_top = grid_top
+
 
         self.options = AttrDict(
             rowattr = ['', 'underline'],
@@ -228,7 +233,6 @@ class Crossword:
         else:
             cursor_across, cursor_down = None, None
 
-        cursor_clues = set()
         for y, row in enumerate(self.grid):
             for x, ch in enumerate(row):
                 attr = d.rowattr
@@ -286,27 +290,35 @@ class Crossword:
 
             scr.move(0,0)
 
-        n = 2
+        n = 5
         # draw clues around both cursors
         dirnums = list(self.acr_clues.values())
         i = dirnums.index(cursor_across)
-        for y, clue in enumerate(dirnums[max(i-n,0):i+n]):
+        y=0
+        for clue in dirnums[max(i-n//2,0):]:
+            if y > n:
+                break
             dir, num, cluestr, answer = clue
             if cursor_across == clue:
                 attr = d.curacrattr
             else:
                 attr = d.clueattr
-            scr.addstr(grid_bottom+y+1, 1, f'{dir}{num}. {cluestr}', attr)
+            scr.addstr(clue_top+y, acrclueleft, f'{dir}{num}. {cluestr}', attr)
+            y += 1
 
+        y += 1
         dirnums = list(self.down_clues.values())
         i = dirnums.index(cursor_down)
-        for y, clue in enumerate(dirnums[max(i-n,0):i+n]):
+        for clue in dirnums[max(i-n//2,0):]:
+            if y > n*2:
+                break
             dir, num, cluestr, answer = clue
             if cursor_down == clue:
                 attr = d.curdownattr
             else:
                 attr = d.clueattr
-            scr.addstr(grid_bottom+y+1, 40, f'{dir}{num}. {cluestr}', attr)
+            scr.addstr(clue_top+y, downclueleft, f'{dir}{num}. {cluestr}', attr)
+            y += 1
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
@@ -320,17 +332,17 @@ class Crossword:
 
     def cursorDown(self, n):
         i = n
-        while self.cell(self.cursor_y+i, self.cursor_x) == '#':
+        while self.cell(self.cursor_y+i, self.cursor_x) == '#' and self.cursor_y+i >= 0 and self.cursor_y+i < self.nrows-1:
             i += n
-        if self.cursor_y+i < 0 or self.cursor_y+i > self.nrows:
+        if self.cursor_y+i < 0 or self.cursor_y+i >= self.nrows:
             return
         self.cursor_y += i
 
     def cursorRight(self, n):
         i = n
-        while self.cell(self.cursor_x+i, self.cursor_x) == '#':
+        while self.cell(self.cursor_y, self.cursor_x+i) == '#' and self.cursor_x+i >= 0 and self.cursor_x+i < self.ncols:
             i += n
-        if self.cursor_x+i < 0 or self.cursor_x+i > self.nrows:
+        if self.cursor_x+i < 0 or self.cursor_x+i >= self.ncols:
             return
         self.cursor_x += i
 
@@ -353,8 +365,9 @@ class CrosswordPlayer:
             xd.draw_hotkeys(scr)
         k = getkeystroke(scr)
         if k == 'q': return True
+        if k == '^L': scr.clear()
 
-        scr.erase()
+        scr.clear()
         scr.addstr(h-1, 0, k)
         scr.addstr(h-1, 40, str(self.n))
         self.n += 1
