@@ -6,7 +6,6 @@ import curses
 from collections import namedtuple, defaultdict, ChainMap
 
 UNFILLED = '.'
-UNSOLVED_EXT = '.unsolved'
 
 def getkeystroke(scr):
     k = scr.get_wch()
@@ -109,10 +108,10 @@ class Crossword:
 
         self.filldir = 'A'
         self.solution = gridstr.splitlines()
-        self.grid = [
-                [ '#' if x == '#' else (x if fn.endswith(UNSOLVED_EXT) else UNFILLED) for x in row ]
-                    for row in self.solution
-                ]
+
+        self.clear()
+        self.grid = [[x for x in row] for row in self.solution]
+
         self.acr_clues = {}
         self.down_clues = {}
         for clue in cluestr.splitlines():
@@ -191,6 +190,8 @@ class Crossword:
                     self.pos[(r+i,c)].append(w)
                     w[-1].append((r+i,c))
 
+    def clear(self):
+        self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
 
     @property
     def nrows(self):
@@ -378,10 +379,7 @@ class Crossword:
         else:
             self.cursorDown(n)
 
-    def save(self):
-        fn = self.fn
-        if not fn.endswith(UNSOLVED_EXT):
-            fn += UNSOLVED_EXT
+    def save(self, fn):
         with open(fn, 'w') as fp:
             for y, (k, v) in enumerate(self.meta.items()):
                 fp.write('%s: %s\n' % (k,v))
@@ -461,7 +459,7 @@ class CrosswordPlayer:
         elif k == 'KEY_DC':  # erase in place
             xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
         elif k == '^S':
-            xd.save()
+            xd.save(xd.fn)
             self.status('saved')
         elif opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
@@ -486,4 +484,10 @@ def main(scr):
     while not plyr.play_one(scr, xd):
         pass
 
-curses.wrapper(main)
+if '--clear' == sys.argv[1]:
+    for fn in sys.argv[2:]:
+        xd = Crossword(fn)
+        xd.clear()
+        xd.save(fn)
+else:
+    curses.wrapper(main)
