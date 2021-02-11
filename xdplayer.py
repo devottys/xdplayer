@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import textwrap
 import string
 import curses
 from collections import namedtuple, defaultdict, ChainMap
@@ -132,24 +133,14 @@ class Crossword:
         self.cursor_y = 0
         self.clue_layout = {}
 
-        global grid_bottom, grid_right, grid_top, grid_left
-        global acrclueleft, downclueleft, clue_top
-        grid_left = 4
-        grid_top = len(self.meta)+1
-        grid_bottom = grid_top + self.nrows
-        grid_right = grid_left + self.ncols*2
-        acrclueleft = 4
-        downclueleft = 4
-        clue_top = grid_bottom+1
-
+        self.move_grid(3, len(self.meta))
 
         self.options = AttrDict(
             rowattr = ['', 'underline'],
-            curattr = ['reverse 183'],
-            curacrattr = ['reverse 210'],
-            curdownattr = ['reverse 74'],
+#            curattr = ['reverse 183'],
+            curacrattr = ['210'],
+            curdownattr = ['74'],
             helpattr = ['bold 69'],
-            filldirattr = ['140'],
             clueattr = ['7'],
 
             topch = '▁_',
@@ -190,6 +181,16 @@ class Crossword:
                     self.pos[(r+i,c)].append(w)
                     w[-1].append((r+i,c))
 
+    def move_grid(self, x, y):
+        global grid_bottom, grid_right, grid_top, grid_left
+        global clue_left, clue_top
+        grid_left = x
+        grid_top = y
+        grid_bottom = grid_top + self.nrows
+        grid_right = grid_left + self.ncols*2
+        clue_left = grid_right+3
+        clue_top = grid_top
+
     def clear(self):
         self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
 
@@ -200,6 +201,14 @@ class Crossword:
     @property
     def ncols(self):
         return len(self.grid[0])
+
+    @property
+    def ncells(self):
+        return len([c for r in self.grid for c in r if c != '#'])
+
+    @property
+    def nsolved(self):
+        return len([c for r in self.grid for c in r if c not in '.#'])
 
     def cell(self, r, c):
         if r < 0 or c < 0 or r >= self.nrows or c >= self.ncols:
@@ -243,9 +252,16 @@ class Crossword:
                     clue_num += 1
 
     def draw(self, scr):
+        h, w = scr.getmaxyx()
         # draw meta
-        for y, (k, v) in enumerate(self.meta.items()):
-            scr.addstr(y, 0, '%s: %s' %(k,v))
+        y = 0
+        for k, v in self.meta.items():
+            if y >= h-self.nrows-2:
+                break
+            scr.addstr(y, 1, '%6s: %s' % (k, v))
+            y += 1
+
+        self.move_grid(3, max(0, min(h-self.nrows-2, y+1)))
 
         # draw grid
         d = self.options
@@ -275,17 +291,11 @@ class Crossword:
                     words = self.pos[(y,x)]
                     across_word, down_word = sorted(words)
                     if cursor_across == across_word and cursor_down == down_word:
-                        attr = d.curattr
-                        attr2 = d.curattr
-                        #ch2 = ' '
+                        attr = attr2 = (d.curacrattr if self.filldir == 'A' else d.curdownattr) | curses.A_REVERSE
                     elif cursor_across == across_word:
-                        attr = d.curacrattr
-                        attr2 = d.curacrattr
-                        #ch2 = ' '
+                        attr = attr2 = d.curacrattr | curses.A_REVERSE
                     elif cursor_down == down_word:
-                        attr = d.curdownattr
-                        attr2 = d.curdownattr
-                        #ch2 = ' '
+                        attr = attr2 = d.curdownattr | curses.A_REVERSE
 
                 if scr:
                     scr.addstr(grid_top+y, grid_left+x*2, ch, attr)
@@ -318,44 +328,50 @@ class Crossword:
             scr.move(0,0)
 
         def draw_clues(d, clue_top, clues, cursor_clue, n):
-            # draw clues around both cursors
+            'Draw clues around cursor in one direction.'
             dirnums = list(clues.values())
             i = dirnums.index(cursor_clue)
             y=0
-            for clue in dirnums[max(i-n//2,0):]:
+            for clue in dirnums[max(i-2,0):]:
                 if y >= n:
                     break
                 dir, num, cluestr, answer, positions = clue
                 if cursor_clue == clue:
-                    attr = d.curacrattr if dir == 'A' else d.curdownattr
+                    attr = (d.curacrattr if dir == 'A' else d.curdownattr) | curses.A_REVERSE
                     if self.filldir == dir:
-                        scr.addstr(clue_top+y, acrclueleft-2, f'{d.dirarrow} ', d.filldirattr)
+                        scr.addstr(clue_top+y, clue_left-2, f'{d.dirarrow} ', (d.curacrattr if dir == 'A' else d.curdownattr))
                 else:
                     attr = d.clueattr
 
                 dirnum = f'{dir}{num}'
                 guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
-                scr.addstr(clue_top+y, acrclueleft, f'{dir}{num}. {cluestr} [{guess}]', attr)
                 self.clue_layout[dirnum] = y
-                self.clue_layout[clue_top+y] = clue
-                y += 1
+                dnw = len(dirnum)+2
+                maxw = w-clue_left-dnw-1
+                cluestr += f' [{guess}]'
+                for j, line in enumerate(textwrap.wrap(cluestr, width=maxw)):
+                    prefix = f'{dirnum}. ' if j == 0 else ' '*dnw
+                    line = prefix + line + ' '*(maxw-len(line))
+                    self.clue_layout[clue_top+y] = clue
+                    scr.addstr(clue_top+y, clue_left, line, attr)
+                    y += 1
 
-        draw_clues(d, clue_top, self.acr_clues, cursor_across, 5)
-        draw_clues(d, clue_top+6, self.down_clues, cursor_down, 5)
-
-        # draw helpstr
-        h, w = scr.getmaxyx()
-        scr.addstr(h-1, 15, " | Arrows move | Tab toggle A/D | Backspace/Del/Space erase | Ctrl+S save | Ctrl+Q quit ", d.helpattr)
+        clueh = self.nrows//2-1
+        draw_clues(d, clue_top, self.acr_clues, cursor_across, clueh)
+        draw_clues(d, clue_top+clueh+2, self.down_clues, cursor_down, clueh)
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
-        for y, (k, v) in enumerate(self.options.items()):
-            key = "0123456789abcdefghijklmnopqrstuvwxyz"[y]
+        h, w = scr.getmaxyx()
+        for i, (k, v) in enumerate(self.options.items()):
+            key = "0123456789abcdefghijklmnopqrstuvwxyz"[i]
             self.hotkeys[key] = k
 
-            scr.addstr(grid_top+y, 40, key)
-            scr.addstr(grid_top+y, 45, k)
-            scr.addstr(grid_top+y, 60, ' '.join(map(str, v)))
+            y = grid_top+self.nrows+i+1
+            if y < h-1:
+                scr.addstr(y, 3, key)
+                scr.addstr(y, 5, k)
+                scr.addstr(y, 15, ' '.join(map(str, v)))
 
     def cursorDown(self, n):
         i = n
@@ -413,7 +429,11 @@ class CrosswordPlayer:
         opt = xd.options
         xd.draw(scr)
         if self.statuses:
-            scr.addstr(h-1, 0, self.statuses.pop())
+            scr.addstr(h-2, clue_left, self.statuses.pop())
+
+        # draw helpstr
+        scr.addstr(h-1, 0, " Arrows move | Tab toggle direction | Ctrl+S save | Ctrl+Q quit | Ctrl+R reset", opt.helpattr)
+
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
             scr.addstr(1, w-20, f'{h}x{w}')
@@ -422,7 +442,7 @@ class CrosswordPlayer:
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
 
-        scr.clear()
+        scr.erase()
         if opt.hotkeys:
             scr.addstr(0, w-20, k)
             scr.addstr(0, w-5, str(self.n))
@@ -446,6 +466,7 @@ class CrosswordPlayer:
         elif k == 'KEY_LEFT': xd.cursorRight(-1)
         elif k == 'KEY_RIGHT': xd.cursorRight(+1)
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
+        elif k == '^R': xd.clear()
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return
@@ -460,7 +481,7 @@ class CrosswordPlayer:
             xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
         elif k == '^S':
             xd.save(xd.fn)
-            self.status('saved')
+            self.status('saved (%d%% solved)' % (xd.nsolved*100/xd.ncells))
         elif opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
         elif k.upper() in string.ascii_uppercase:
@@ -475,6 +496,7 @@ def main(scr):
     curses.use_default_colors()
     curses.raw()
     curses.meta(1)
+    curses.curs_set(0)
     curses.mousemask(-1)
 
     colors = ColorMaker()
