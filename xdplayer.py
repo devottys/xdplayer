@@ -148,6 +148,7 @@ class Crossword:
             curattr = ['reverse 217'],
             curacrattr = ['reverse 125'],
             curdownattr = ['reverse 74'],
+            filldirattr = ['underline'],
             clueattr = ['7'],
 
             topch = '▁_',
@@ -314,7 +315,7 @@ class Crossword:
                 break
             dir, num, cluestr, answer = clue
             if cursor_across == clue:
-                attr = d.curacrattr
+                attr = d.curacrattr if self.filldir == "D" else (d.curacrattr | d.filldirattr)
             else:
                 attr = d.clueattr
             scr.addstr(clue_top+y, acrclueleft, f'{dir}{num}. {cluestr}', attr)
@@ -328,7 +329,7 @@ class Crossword:
                 break
             dir, num, cluestr, answer = clue
             if cursor_down == clue:
-                attr = d.curdownattr
+                attr = d.curdownattr if self.filldir == "A" else (d.curdownattr | d.filldirattr)
             else:
                 attr = d.clueattr
             scr.addstr(clue_top+y, downclueleft, f'{dir}{num}. {cluestr}', attr)
