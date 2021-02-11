@@ -6,8 +6,7 @@
 
 ## Commands
 
-- arrows: move cursor around
-- click on grid: move cursor
+- move cursor with arrows or click on a grid square or a clue
 
 - A-Z: put answer in grid
 - Backspace, Space, Delete: erase backward, forward, in-place
@@ -15,3 +14,4 @@
 
 - Ctrl+S: save partial solution to `<file.xd.unsolved>` which may be restored later
 - Ctrl+X: enable hotkeys to cycle through configurable options
+- Ctrl+Q: quit without saving
