@@ -6,95 +6,39 @@ import string
 import curses
 from collections import namedtuple, defaultdict
 
+from tui import *
+
 UNFILLED = '.'
 
-def getkeystroke(scr):
-    k = scr.get_wch()
-    if isinstance(k, str):
-        if ord(k) >= 32 and ord(k) != 127:  # 127 == DEL or ^?
-            return k
-        k = ord(k)
-    return curses.keyname(k).decode('utf-8')
+opt = OptionsObject(
+    rowattr = ['', 'underline'],
+#            curattr = ['reverse 183'],
+    curacrattr = ['210'],
+    curdownattr = ['74'],
+    helpattr = ['bold 69'],
+    clueattr = ['7'],
 
-class ColorMaker:
-    def __init__(self):
-        self.attrs = {}
-        self.color_attrs = {}
+    topch = '▁_',
+    topattr = ['', 'underline'],
+    botch = '▇⎴',
+    botattr = ['reverse'],
+    midblankch = '█',
+    leftblankch = '▌',
+    rightblankch = '▐',
+    rightch = '▎▌│',
+    leftch = '▊▐│',
+    vline = '│┃|┆┇┊┋',
+    inside_vline = ' │|┆┃┆┇┊┋',
+    leftattr = ['', 'reverse'],
+    unsolved_char = '· .?□_▁-˙∙•╺‧',
+    dirarrow = '→↪⇢⇨',
 
-        default_bg = curses.COLOR_BLACK
-
-        self.color_attrs['black'] = curses.color_pair(0)
-
-        for c in range(0, 256 or curses.COLORS):
-            try:
-                curses.init_pair(c+1, c, default_bg)
-                self.color_attrs[str(c)] = curses.color_pair(c+1)
-            except curses.error as e:
-                pass # curses.init_pair gives a curses error on Windows
-
-        for c in 'red green yellow blue magenta cyan white'.split():
-            colornum = getattr(curses, 'COLOR_' + c.upper())
-            self.color_attrs[c] = curses.color_pair(colornum+1)
-
-        for a in 'normal blink bold dim reverse standout underline'.split():
-            self.attrs[a] = getattr(curses, 'A_' + a.upper())
-
-    def __getitem__(self, colornamestr):
-        return self._colornames_to_cattr(colornamestr)
-
-    def __getattr__(self, colornamestr):
-        return self._colornames_to_cattr(optname).attr
-
-    def _colornames_to_cattr(self, colornamestr):
-        color, attr = 0, 0
-        for colorname in colornamestr.split(' '):
-            if colorname in self.color_attrs:
-                if not color:
-                    color = self.color_attrs[colorname.lower()]
-            elif colorname in self.attrs:
-                attr = self.attrs[colorname.lower()]
-        return attr | color
-
-
-class AttrDict(dict):
-    'Augment a dict with more convenient .attr syntax.  not-present keys return None.'
-    def __init__(self, **kwargs):
-        kw = {}
-        for k, v in kwargs.items():
-            if isinstance(v, list):
-                pass
-            elif isinstance(v, str):
-                v = list(v)
-                if ' ' not in v:
-                    v.append(' ')
-            elif isinstance(v, bool):
-                v = [v, not v]
-            elif isinstance(v, int):
-                v = [v, 0]
-            else:
-                v = [v]
-
-            assert isinstance(v, list)
-            kw[k] = v
-        dict.__init__(self, **kw)
-
-    def __getattr__(self, k):
-        try:
-            v = self[k][0]
-            if k.endswith('attr'):
-                v = colors[v]
-            return v
-        except KeyError:
-            if k.startswith("__"):
-                raise AttributeError
-
-            return None
-
-    def __dir__(self):
-        return self.keys()
-
-    def cycle(self, k):
-        self[k] = self[k][1:] + [self[k][0]]
+    ulch = ' ▗',
+    urch = ' ▖',
+    blch = ' ▝',
+    brch = ' ▘',
+    hotkeys= False,
+)
 
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
 
@@ -131,36 +75,6 @@ class Crossword:
         self.clue_layout = {}
 
         self.move_grid(3, len(self.meta))
-
-        self.options = AttrDict(
-            rowattr = ['', 'underline'],
-#            curattr = ['reverse 183'],
-            curacrattr = ['210'],
-            curdownattr = ['74'],
-            helpattr = ['bold 69'],
-            clueattr = ['7'],
-
-            topch = '▁_',
-            topattr = ['', 'underline'],
-            botch = '▇⎴',
-            botattr = ['reverse'],
-            midblankch = '█',
-            leftblankch = '▌',
-            rightblankch = '▐',
-            rightch = '▎▌│',
-            leftch = '▊▐│',
-            vline = '│┃|┆┇┊┋',
-            inside_vline = ' │|┆┃┆┇┊┋',
-            leftattr = ['', 'reverse'],
-            unsolved_char = '· .?□_▁-˙∙•╺‧',
-            dirarrow = '→↪⇢⇨',
-
-            ulch = ' ▗',
-            urch = ' ▖',
-            blch = ' ▝',
-            brch = ' ▘',
-            hotkeys= False,
-        )
 
         self.pos = defaultdict(list)  # (y,x) -> [(dir, num, answer), ...] associated words with that cell
         for dir, num, answer, r, c in self.iteranswers_full():
@@ -268,7 +182,7 @@ class Crossword:
         self.move_grid(3, max(0, min(h-self.nrows-2, y+1)))
 
         # draw grid
-        d = self.options
+        d = opt
         cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
         if cursor_words:
             cursor_across, cursor_down = sorted(cursor_words)
@@ -277,83 +191,83 @@ class Crossword:
 
         for y, row in enumerate(self.grid):
             for x, ch in enumerate(row):
-                attr = d.rowattr
-                attr2 = d.rowattr
+                attr = opt.rowattr
+                attr2 = opt.rowattr
 
                 ch1 = ch
                 if ch == '#':
-                    ch1 = d.midblankch
+                    ch1 = opt.midblankch
                 else:
                     assert ch == self.grid[y][x]
-                    if ch == UNFILLED: ch1 = d.unsolved_char
+                    if ch == UNFILLED: ch1 = opt.unsolved_char
 
-                    ch2 = d.inside_vline
+                    ch2 = opt.inside_vline
 
                     words = self.pos[(y,x)]
                     across_word, down_word = sorted(words)
                     if cursor_across == across_word and cursor_down == down_word:
-                        attr = attr2 = (d.curacrattr if self.filldir == 'A' else d.curdownattr) | curses.A_REVERSE
+                        attr = attr2 = (opt.curacrattr if self.filldir == 'A' else opt.curdownattr) | curses.A_REVERSE
                     elif cursor_across == across_word:
-                        attr = attr2 = d.curacrattr | curses.A_REVERSE
+                        attr = attr2 = opt.curacrattr | curses.A_REVERSE
                     elif cursor_down == down_word:
-                        attr = attr2 = d.curdownattr | curses.A_REVERSE
+                        attr = attr2 = opt.curdownattr | curses.A_REVERSE
 
                 # calc ch2 -- A2B
-                ch2 = d.inside_vline
+                ch2 = opt.inside_vline
                 bch = self.cell(y, x+1)
                 acursordown = cursor_down == down_word
                 bcursordown = self.is_cursor(y, x+1, down=True)
                 bcursoracr = self.is_cursor(y, x+1, down=False)
 
-                if ch == '#' and bch == '#': ch2 = d.midblankch
-                elif bch == '#': ch2 = d.rightblankch
-                elif ch == '#': ch2 = d.leftblankch
+                if ch == '#' and bch == '#': ch2 = opt.midblankch
+                elif bch == '#': ch2 = opt.rightblankch
+                elif ch == '#': ch2 = opt.leftblankch
 
                 if ch == '#' and (bcursordown or bcursoracr):
-                    ch2 = d.rightblankch
+                    ch2 = opt.rightblankch
                     attr2 = colors['white on ' + d['curdownattr'][0]]
                 elif ch == '#' and bcursoracr:
-                    ch2 = d.rightblankch
+                    ch2 = opt.rightblankch
                     attr2 = colors['white on ' + d['curacrattr'][0]]
 
                 if acursordown:
                     if bch == '#':
                         attr2 = colors[d['curdownattr'][0] +' on white']
-                        ch2 = d.rightblankch
+                        ch2 = opt.rightblankch
                 if scr:
                     scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
                     scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
 
                 if x == 0:
-                    ch1 = d.leftblankch
+                    ch1 = opt.leftblankch
                     if acursordown:
-                        attr = colors[d['curdownattr'][0] +' on white']
-                        ch1 = d.rightblankch
+                        attr = colors[opt['curdownattr'][0] +' on white']
+                        ch1 = opt.rightblankch
                     elif ch == '#':
-                        ch1 = d.midblankch
+                        ch1 = opt.midblankch
 
                     scr.addstr(grid_top+y, grid_left-1, ch1, attr)
 
                 if x == len(row)-1:
 #                    attr = colors[opt.curacrattr +' on white')
-                    ch2 = d.leftblankch
+                    ch2 = opt.leftblankch
                     if ch == '#' or acursordown:
-                        ch2 = d.midblankch
+                        ch2 = opt.midblankch
 
                     scr.addstr(grid_top+y, grid_right-1, ch2, attr)
 
         if scr:
-            scr.addstr(grid_top-1, grid_left, d.topch*(self.ncols*2-1), d.topattr)
-            scr.addstr(grid_bottom,grid_left, d.botch*(self.ncols*2-1), d.rowattr | d.botattr)
+            scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
+            scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.rowattr | opt.botattr)
 
-            scr.addstr(grid_top-1, grid_left-1, d.ulch)
-            scr.addstr(grid_bottom,grid_left-1, d.blch)
-            scr.addstr(grid_top-1, grid_right-1, d.urch)
-            scr.addstr(grid_bottom,grid_right-1, d.brch)
+            scr.addstr(grid_top-1, grid_left-1, opt.ulch)
+            scr.addstr(grid_bottom,grid_left-1, opt.blch)
+            scr.addstr(grid_top-1, grid_right-1, opt.urch)
+            scr.addstr(grid_bottom,grid_right-1, opt.brch)
 
             scr.move(0,0)
 
-        def draw_clues(d, clue_top, clues, cursor_clue, n):
+        def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'
             dirnums = list(clues.values())
             i = dirnums.index(cursor_clue)
@@ -363,11 +277,11 @@ class Crossword:
                     break
                 dir, num, cluestr, answer, positions = clue
                 if cursor_clue == clue:
-                    attr = (d.curacrattr if dir == 'A' else d.curdownattr) | curses.A_REVERSE
+                    attr = (opt.curacrattr if dir == 'A' else opt.curdownattr) | curses.A_REVERSE
                     if self.filldir == dir:
-                        scr.addstr(clue_top+y, clue_left-2, f'{d.dirarrow} ', (d.curacrattr if dir == 'A' else d.curdownattr))
+                        scr.addstr(clue_top+y, clue_left-2, f'{opt.dirarrow} ', (opt.curacrattr if dir == 'A' else opt.curdownattr))
                 else:
-                    attr = d.clueattr
+                    attr = opt.clueattr
 
                 dirnum = f'{dir}{num}'
                 guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
@@ -383,13 +297,13 @@ class Crossword:
                     y += 1
 
         clueh = self.nrows//2-1
-        draw_clues(d, clue_top, self.acr_clues, cursor_across, clueh)
-        draw_clues(d, clue_top+clueh+2, self.down_clues, cursor_down, clueh)
+        draw_clues(clue_top, self.acr_clues, cursor_across, clueh)
+        draw_clues(clue_top+clueh+2, self.down_clues, cursor_down, clueh)
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
         h, w = scr.getmaxyx()
-        for i, (k, v) in enumerate(self.options.items()):
+        for i, (k, v) in enumerate(opt.items()):
             key = "0123456789abcdefghijklmnopqrstuvwxyz"[i]
             self.hotkeys[key] = k
 
@@ -452,7 +366,6 @@ class CrosswordPlayer:
 
     def play_one(self, scr, xd):
         h, w = scr.getmaxyx()
-        opt = xd.options
         xd.draw(scr)
         if self.statuses:
             scr.addstr(h-2, clue_left, self.statuses.pop())
@@ -518,7 +431,6 @@ class CrosswordPlayer:
 
 def main(scr):
     global colors
-
     curses.use_default_colors()
     curses.raw()
     curses.meta(1)
