@@ -159,7 +159,6 @@ class Crossword:
             urch = ' ▖',
             blch = ' ▝',
             brch = ' ▘',
-            solved = False,
             hotkeys= False,
         )
 
@@ -249,6 +248,13 @@ class Crossword:
                 if new_clue:
                     clue_num += 1
 
+    def is_cursor(self, y, x, down=False):
+        w = self.pos[(y, x)]
+        if not w: return False
+        cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
+        if not cursor_words: return False
+        return sorted(cursor_words)[down] == w[down]
+
     def draw(self, scr):
         h, w = scr.getmaxyx()
         # draw meta
@@ -256,7 +262,7 @@ class Crossword:
         for k, v in self.meta.items():
             if y >= h-self.nrows-2:
                 break
-            scr.addstr(y, 1, '%6s: %s' % (k, v))
+            scr.addstr(y, 1, '%10s: %s' % (k, v))
             y += 1
 
         self.move_grid(3, max(0, min(h-self.nrows-2, y+1)))
@@ -274,15 +280,12 @@ class Crossword:
                 attr = d.rowattr
                 attr2 = d.rowattr
 
+                ch1 = ch
                 if ch == '#':
-                    ch = d.midblankch
-                    ch2 = d.midblankch if x < len(row)-1 and row[x+1] == '#' else d.leftblankch
+                    ch1 = d.midblankch
                 else:
-                    if d.solved:
-                        ch = self.solution[y][x]
-                    else:
-                        ch = self.grid[y][x]
-                        if ch == UNFILLED: ch = d.unsolved_char
+                    assert ch == self.grid[y][x]
+                    if ch == UNFILLED: ch1 = d.unsolved_char
 
                     ch2 = d.inside_vline
 
@@ -295,24 +298,49 @@ class Crossword:
                     elif cursor_down == down_word:
                         attr = attr2 = d.curdownattr | curses.A_REVERSE
 
+                # calc ch2 -- A2B
+                ch2 = d.inside_vline
+                bch = self.cell(y, x+1)
+                acursordown = cursor_down == down_word
+                bcursordown = self.is_cursor(y, x+1, down=True)
+                bcursoracr = self.is_cursor(y, x+1, down=False)
+
+                if ch == '#' and bch == '#': ch2 = d.midblankch
+                elif bch == '#': ch2 = d.rightblankch
+                elif ch == '#': ch2 = d.leftblankch
+
+                if ch == '#' and (bcursordown or bcursoracr):
+                    ch2 = d.rightblankch
+                    attr2 = colors['white on ' + d['curdownattr'][0]]
+                elif ch == '#' and bcursoracr:
+                    ch2 = d.rightblankch
+                    attr2 = colors['white on ' + d['curacrattr'][0]]
+
+                if acursordown:
+                    if bch == '#':
+                        attr2 = colors[d['curdownattr'][0] +' on white']
+                        ch2 = d.rightblankch
                 if scr:
-                    scr.addstr(grid_top+y, grid_left+x*2, ch, attr)
+                    scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
                     scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
 
                 if x == 0:
-                    if ch == '#' or cursor_down == down_word:
-                        ch = d.leftblankch
-                    else:
-                        ch = d.vline
-                    scr.addstr(grid_top+y, grid_left-1, ch, attr)
+                    ch1 = d.leftblankch
+                    if acursordown:
+                        attr = colors[d['curdownattr'][0] +' on white']
+                        ch1 = d.rightblankch
+                    elif ch == '#':
+                        ch1 = d.midblankch
+
+                    scr.addstr(grid_top+y, grid_left-1, ch1, attr)
 
                 if x == len(row)-1:
-                    if ch == '#' or cursor_down == down_word:
-                        ch = d.rightblankch
-                    else:
-                        ch = d.vline
-                    scr.addstr(grid_top+y, grid_right-1, ch, attr)
+#                    attr = colors[opt.curacrattr +' on white')
+                    ch2 = d.leftblankch
+                    if ch == '#' or acursordown:
+                        ch2 = d.midblankch
 
+                    scr.addstr(grid_top+y, grid_right-1, ch2, attr)
 
         if scr:
             scr.addstr(grid_top-1, grid_left, d.topch*(self.ncols*2-1), d.topattr)
