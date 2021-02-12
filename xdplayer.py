@@ -4,7 +4,7 @@ import sys
 import textwrap
 import string
 import curses
-from collections import namedtuple, defaultdict, ChainMap
+from collections import namedtuple, defaultdict
 
 UNFILLED = '.'
 
@@ -96,6 +96,8 @@ class AttrDict(dict):
     def cycle(self, k):
         self[k] = self[k][1:] + [self[k][0]]
 
+BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
+
 class Crossword:
     def __init__(self, fn):
         self.fn = fn
@@ -113,8 +115,7 @@ class Crossword:
         self.clear()
         self.grid = [[x for x in row] for row in self.solution]
 
-        self.acr_clues = {}
-        self.down_clues = {}
+        self.clues = {}  # 'A1' -> Clue
         for clue in cluestr.splitlines():
             if clue:
                 if ' ~ ' in clue:
@@ -123,11 +124,7 @@ class Crossword:
                     answer = ''
                 dirnum, clue = clue.split('. ', maxsplit=1)
                 dir, num = dirnum[0], int(dirnum[1:])
-                cluetuple = (dir, num, clue, answer, [])  # final is board positions, filled in below
-                if dir == 'A':
-                    self.acr_clues[dirnum] = cluetuple
-                else:
-                    self.down_clues[dirnum] = cluetuple
+                self.clues[dirnum] = BoardClue(dir, num, clue, answer, [])  # final is board positions, filled in below
 
         self.cursor_x = 0
         self.cursor_y = 0
@@ -166,20 +163,13 @@ class Crossword:
             hotkeys= False,
         )
 
-        self.clues = ChainMap(self.acr_clues, self.down_clues)
-
         self.pos = defaultdict(list)  # (y,x) -> [(dir, num, answer), ...] associated words with that cell
         for dir, num, answer, r, c in self.iteranswers_full():
             for i in range(len(answer)):
-
-                if dir == 'A':
-                    w = self.acr_clues[f'{dir}{num}']
-                    self.pos[(r,c+i)].append(w)
-                    w[-1].append((r,c+i))
-                else:
-                    w = self.down_clues[f'{dir}{num}']
-                    self.pos[(r+i,c)].append(w)
-                    w[-1].append((r+i,c))
+                w = self.clues[f'{dir}{num}']
+                coord = (r,c+i) if dir == 'A' else (r+i,c)
+                self.pos[coord].append(w)
+                w[-1].append(coord)
 
     def move_grid(self, x, y):
         global grid_bottom, grid_right, grid_top, grid_left
@@ -193,6 +183,14 @@ class Crossword:
 
     def clear(self):
         self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
+
+    @property
+    def acr_clues(self):
+        return {k:v for k, v in self.clues.items() if k[0] == 'A'}
+
+    @property
+    def down_clues(self):
+        return {k:v for k, v in self.clues.items() if k[0] == 'D'}
 
     @property
     def nrows(self):
@@ -347,7 +345,7 @@ class Crossword:
                 guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
                 self.clue_layout[dirnum] = y
                 dnw = len(dirnum)+2
-                maxw = w-clue_left-dnw-1
+                maxw = min(w-clue_left-dnw-1, 40)
                 cluestr += f' [{guess}]'
                 for j, line in enumerate(textwrap.wrap(cluestr, width=maxw)):
                     prefix = f'{dirnum}. ' if j == 0 else ' '*dnw
