@@ -12,9 +12,10 @@ UNFILLED = '.'
 
 opt = OptionsObject(
     rowattr = ['', 'underline'],
-#            curattr = ['reverse 183'],
-    curacrattr = ['210'],
-    curdownattr = ['74'],
+    acrattr = ['210'],
+    downattr = ['74'],
+    curacrattr = ['175'],
+    curdownattr = ['189'],
     helpattr = ['bold 69'],
     clueattr = ['7'],
 
@@ -208,32 +209,50 @@ class Crossword:
                     if cursor_across == across_word and cursor_down == down_word:
                         attr = attr2 = (opt.curacrattr if self.filldir == 'A' else opt.curdownattr) | curses.A_REVERSE
                     elif cursor_across == across_word:
-                        attr = attr2 = opt.curacrattr | curses.A_REVERSE
+                        attr = attr2 = opt.acrattr | curses.A_REVERSE
                     elif cursor_down == down_word:
-                        attr = attr2 = opt.curdownattr | curses.A_REVERSE
+                        attr = attr2 = opt.downattr | curses.A_REVERSE
 
                 # calc ch2 -- A2B
                 ch2 = opt.inside_vline
                 bch = self.cell(y, x+1)
                 acursordown = cursor_down == down_word
+                acursoracr = cursor_across == across_word
                 bcursordown = self.is_cursor(y, x+1, down=True)
                 bcursoracr = self.is_cursor(y, x+1, down=False)
+
+                ch2 = ' '
+                attr2 = attr
 
                 if ch == '#' and bch == '#': ch2 = opt.midblankch
                 elif bch == '#': ch2 = opt.rightblankch
                 elif ch == '#': ch2 = opt.leftblankch
 
-                if ch == '#' and (bcursordown or bcursoracr):
-                    ch2 = opt.rightblankch
-                    attr2 = colors['white on ' + d['curdownattr'][0]]
-                elif ch == '#' and bcursoracr:
-                    ch2 = opt.rightblankch
-                    attr2 = colors['white on ' + d['curacrattr'][0]]
-
                 if acursordown:
                     if bch == '#':
-                        attr2 = colors[d['curdownattr'][0] +' on white']
                         ch2 = opt.rightblankch
+                        attr2 = colors['white on ' + opt['downattr'][0]]
+                    else:
+                        if bcursoracr:
+                            attr2 = colors[opt['downattr'][0] + ' on ' + opt['acrattr'][0]]
+                elif bcursordown:
+                    if bch == '#':
+                        ch2 = opt.leftblankch
+                        attr2 = colors['white on ' + opt['downattr'][0]]
+                    else:
+                        if not bcursoracr:
+                            ch2 = opt.leftblankch
+                            attr2 = opt.downattr
+                if acursoracr and bch == '#':
+                    attr2 = colors['white on ' + opt['acrattr'][0]]
+                    ch2 = opt.rightblankch
+                elif ch == '#' and (bcursordown or bcursoracr):
+                    attr2 = colors['white on ' + opt['downattr'][0]]
+                    ch2 = opt.rightblankch
+                elif ch == '#' and bcursoracr:
+                    attr2 = colors['white on ' + opt['acrattr'][0]]
+                    ch2 = opt.rightblankch
+
                 if scr:
                     scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
                     scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
@@ -241,18 +260,22 @@ class Crossword:
                 if x == 0:
                     ch1 = opt.leftblankch
                     if acursordown:
-                        attr = colors[opt['curdownattr'][0] +' on white']
-                        ch1 = opt.rightblankch
+                        cn = 'white on ' + opt['downattr'][0]
+                        attr = colors['white on ' + opt['downattr'][0]]
+#                        ch1 = opt.leftblankch
                     elif ch == '#':
                         ch1 = opt.midblankch
 
                     scr.addstr(grid_top+y, grid_left-1, ch1, attr)
 
                 if x == len(row)-1:
-#                    attr = colors[opt.curacrattr +' on white')
-                    ch2 = opt.leftblankch
+                    if acursoracr:
+                        attr = colors['white on ' + opt['curacrattr'][0]]
+                    if acursordown:
+                        attr = colors['white on ' + opt['curdownattr'][0]]
+                    ch2 = opt.rightblankch
                     if ch == '#' or acursordown:
-                        ch2 = opt.midblankch
+                        ch2 = opt.rightblankch
 
                     scr.addstr(grid_top+y, grid_right-1, ch2, attr)
 
@@ -275,21 +298,19 @@ class Crossword:
             for clue in dirnums[max(i-2,0):]:
                 if y >= n:
                     break
-                dir, num, cluestr, answer, positions = clue
                 if cursor_clue == clue:
-                    attr = (opt.curacrattr if dir == 'A' else opt.curdownattr) | curses.A_REVERSE
-                    if self.filldir == dir:
-                        scr.addstr(clue_top+y, clue_left-2, f'{opt.dirarrow} ', (opt.curacrattr if dir == 'A' else opt.curdownattr))
+                    attr = (opt.acrattr if clue.dir == 'A' else opt.downattr) | curses.A_REVERSE
+                    if self.filldir == clue.dir:
+                        scr.addstr(clue_top+y, clue_left-2, f'{opt.dirarrow} ', (opt.acrattr if clue.dir == 'A' else opt.downattr))
                 else:
                     attr = opt.clueattr
 
-                dirnum = f'{dir}{num}'
+                dirnum = f'{clue.dir}{clue.num}'
                 guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
                 self.clue_layout[dirnum] = y
                 dnw = len(dirnum)+2
                 maxw = min(w-clue_left-dnw-1, 40)
-                cluestr += f' [{guess}]'
-                for j, line in enumerate(textwrap.wrap(cluestr, width=maxw)):
+                for j, line in enumerate(textwrap.wrap(clue.clue + f' [{guess}]', width=maxw)):
                     prefix = f'{dirnum}. ' if j == 0 else ' '*dnw
                     line = prefix + line + ' '*(maxw-len(line))
                     self.clue_layout[clue_top+y] = clue
@@ -348,13 +369,11 @@ class Crossword:
             fp.write('\n\n')
 
             for clue in self.acr_clues.values():
-                dir, num, cluestr, answer, positions = clue
-                fp.write(f'{dir}{num}. {cluestr}\n')
+                fp.write(f'{clue.dir}{clue.num}. {clue.clue}\n')
             fp.write('\n')
 
             for clue in self.down_clues.values():
-                dir, num, cluestr, answer, positions = clue
-                fp.write(f'{dir}{num}. {cluestr}\n')
+                fp.write(f'{clue.dir}{clue.num}. {clue.clue}\n')
 
 
 class CrosswordPlayer:
@@ -432,14 +451,11 @@ class CrosswordPlayer:
 
 
 def main(scr):
-    global colors
     curses.use_default_colors()
     curses.raw()
     curses.meta(1)
     curses.curs_set(0)
     curses.mousemask(-1)
-
-    colors = ColorMaker()
 
     plyr = CrosswordPlayer()
     xd = Crossword(sys.argv[1])

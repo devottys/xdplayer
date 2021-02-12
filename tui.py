@@ -12,44 +12,40 @@ def getkeystroke(scr):
 
 class ColorMaker:
     def __init__(self):
-        global colors
-        colors = self
         self.attrs = {}
         self.color_attrs = {}
 
-        default_bg = curses.COLOR_BLACK
+#        self.color_attrs['black'] = curses.color_pair(0)
 
-        self.color_attrs['black'] = curses.color_pair(0)
-
-        for c in range(0, 256 or curses.COLORS):
+    def get_color(self, fg, bg):
+        if not self.color_attrs.get((fg,bg), None):
             try:
-                curses.init_pair(c+1, c, default_bg)
-                self.color_attrs[str(c)] = curses.color_pair(c+1)
+                c = len(self.color_attrs)+1
+                curses.init_pair(c, fg, bg)
+                self.color_attrs[(fg,bg)] = curses.color_pair(c)
             except curses.error as e:
                 pass # curses.init_pair gives a curses error on Windows
-
-        for c in 'red green yellow blue magenta cyan white'.split():
-            colornum = getattr(curses, 'COLOR_' + c.upper())
-            self.color_attrs[c] = curses.color_pair(colornum+1)
-
-        for a in 'normal blink bold dim reverse standout underline'.split():
-            self.attrs[a] = getattr(curses, 'A_' + a.upper())
+        return self.color_attrs[(fg,bg)]
 
     def __getitem__(self, colornamestr):
         return self._colornames_to_cattr(colornamestr)
 
-    def __getattr__(self, colornamestr):
-        return self._colornames_to_cattr(optname).attr
-
     def _colornames_to_cattr(self, colornamestr):
-        color, attr = 0, 0
+        if not colornamestr:
+            return 0
+        fgbg = [0,0]
+        attr = 0  # other attrs
+        bg = False
         for colorname in colornamestr.split(' '):
-            if colorname in self.color_attrs:
-                if not color:
-                    color = self.color_attrs[colorname.lower()]
-            elif colorname in self.attrs:
-                attr = self.attrs[colorname.lower()]
-        return attr | color
+            if colorname == 'on': bg = True
+            elif hasattr(curses, 'A_'+colorname.upper()):
+                attr |= getattr(curses, 'A_'+colorname.upper())
+            elif not fgbg[bg]:
+                if colorname.isdigit():
+                    fgbg[bg] = int(colorname)
+                else:
+                    fgbg[bg] = getattr(curses, 'COLOR_'+colorname.upper(), 0)
+        return attr | self.get_color(*fgbg)
 
 
 class OptionsObject(dict):
@@ -80,14 +76,17 @@ class OptionsObject(dict):
             if k.endswith('attr'):
                 v = colors[v]
             return v
-        except KeyError:
+        except KeyError as e:
             if k.startswith("__"):
                 raise AttributeError
 
-            return None
+            return 0
 
     def __dir__(self):
         return self.keys()
 
     def cycle(self, k):
         self[k] = self[k][1:] + [self[k][0]]
+
+
+colors = ColorMaker()
