@@ -331,9 +331,11 @@ class Crossword:
 
     def cursorMove(self, n):
         if self.filldir == 'A':
-            self.cursorRight(n)
+            if self.cell(self.cursor_y, self.cursor_x+1) != '#':
+                self.cursorRight(n)
         else:
-            self.cursorDown(n)
+            if self.cell(self.cursor_y+1, self.cursor_x) != '#':
+                self.cursorDown(n)
 
     def save(self, fn):
         with open(fn, 'w') as fp:
