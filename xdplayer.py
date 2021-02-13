@@ -352,10 +352,10 @@ class Crossword:
 
     def cursorMove(self, n):
         if self.filldir == 'A':
-            if self.cell(self.cursor_y, self.cursor_x+1) != '#':
+            if self.cell(self.cursor_y, self.cursor_x+n) != '#':
                 self.cursorRight(n)
         else:
-            if self.cell(self.cursor_y+1, self.cursor_x) != '#':
+            if self.cell(self.cursor_y+n, self.cursor_x) != '#':
                 self.cursorDown(n)
 
     def save(self, fn):
