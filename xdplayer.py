@@ -215,41 +215,31 @@ class Crossword:
 
                 # calc ch2 -- A2B
                 ch2 = opt.inside_vline
-                bch = self.cell(y, x+1)
+                fch = self.cell(y, x+1)
+                bch = self.cell(y, x-1)
                 acursordown = cursor_down == down_word
                 acursoracr = cursor_across == across_word
                 bcursordown = self.is_cursor(y, x+1, down=True)
                 bcursoracr = self.is_cursor(y, x+1, down=False)
 
-                ch2 = ' '
                 attr2 = attr
 
-                if ch == '#' and bch == '#': ch2 = opt.midblankch
-                elif bch == '#': ch2 = opt.rightblankch
+                if ch == '#' and fch == '#': ch2 = opt.midblankch
+                elif fch == '#': ch2 = opt.rightblankch
                 elif ch == '#': ch2 = opt.leftblankch
 
                 if acursordown:
-                    if bch == '#':
+                    # we are in Down Tab
+                    if fch == '#' and ch != '#':
+                        # if the vertical cursor is flush against a block to its right
                         ch2 = opt.rightblankch
                         attr2 = colors['white on ' + opt['downattr'][0]]
                     else:
                         if bcursoracr:
+                            # if it is an intersecting point between vertical and horizontal
                             attr2 = colors[opt['downattr'][0] + ' on ' + opt['acrattr'][0]]
-                elif bcursordown:
-                    if bch == '#':
-                        ch2 = opt.leftblankch
-                        attr2 = colors['white on ' + opt['downattr'][0]]
-                    else:
-                        if not bcursoracr:
-                            ch2 = opt.leftblankch
-                            attr2 = opt.downattr
-                if acursoracr and bch == '#':
-                    attr2 = colors['white on ' + opt['acrattr'][0]]
-                    ch2 = opt.rightblankch
-                elif ch == '#' and (bcursordown or bcursoracr):
-                    attr2 = colors['white on ' + opt['downattr'][0]]
-                    ch2 = opt.rightblankch
-                elif ch == '#' and bcursoracr:
+                if acursoracr and fch == '#' and ch != '#':
+                    # make the right edge of across, flush with border
                     attr2 = colors['white on ' + opt['acrattr'][0]]
                     ch2 = opt.rightblankch
 
@@ -262,7 +252,11 @@ class Crossword:
                     if acursordown:
                         cn = 'white on ' + opt['downattr'][0]
                         attr = colors['white on ' + opt['downattr'][0]]
-#                        ch1 = opt.leftblankch
+                        ch1 = opt.leftblankch
+                    if acursoracr:
+                        cn = 'white on ' + opt['acrattr'][0]
+                        attr = colors[cn]
+                        ch1 = opt.leftblankch
                     elif ch == '#':
                         ch1 = opt.midblankch
 
@@ -273,7 +267,6 @@ class Crossword:
                         attr = colors['white on ' + opt['curacrattr'][0]]
                     if acursordown:
                         attr = colors['white on ' + opt['curdownattr'][0]]
-                    ch2 = opt.rightblankch
                     if ch == '#' or acursordown:
                         ch2 = opt.rightblankch
 
