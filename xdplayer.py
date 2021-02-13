@@ -168,7 +168,7 @@ class Crossword:
         if not w: return False
         cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
         if not cursor_words: return False
-        return sorted(cursor_words)[down] == w[down]
+        return sorted(cursor_words)[down] == sorted(w)[down]
 
     def draw(self, scr):
         h, w = scr.getmaxyx()
@@ -219,8 +219,8 @@ class Crossword:
                 bch = self.cell(y, x-1)
                 acursordown = cursor_down == down_word
                 acursoracr = cursor_across == across_word
-                bcursordown = self.is_cursor(y, x+1, down=True)
-                bcursoracr = self.is_cursor(y, x+1, down=False)
+                fcursordown = self.is_cursor(y, x+1, down=True)
+                fcursoracr = self.is_cursor(y, x+1, down=False)
 
                 attr2 = attr
 
@@ -235,12 +235,16 @@ class Crossword:
                         ch2 = opt.rightblankch
                         attr2 = colors['white on ' + opt['downattr'][0]]
                     else:
-                        if bcursoracr:
+                        if fcursoracr:
                             # if it is an intersecting point between vertical and horizontal
                             attr2 = colors[opt['downattr'][0] + ' on ' + opt['acrattr'][0]]
                 if acursoracr and fch == '#' and ch != '#':
                     # make the right edge of across, flush with border
                     attr2 = colors['white on ' + opt['acrattr'][0]]
+                    ch2 = opt.rightblankch
+
+                if fcursordown and not acursoracr:
+                    attr2 = colors[opt['downattr'][0]]
                     ch2 = opt.rightblankch
 
                 if scr:
