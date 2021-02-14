@@ -47,6 +47,7 @@ opt = OptionsObject(
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
 
 def half(fg_coloropt, bg_coloropt):
+    'Return curses color code for {fg_coloropt} colored character on a {bg_coloropt} colored background.'
     return colors['%s on %s' % (opt[fg_coloropt+'attr'][0], opt[bg_coloropt+'attr'][0])]
 
 
@@ -181,6 +182,7 @@ class Crossword:
                     clue_num += 1
 
     def is_cursor(self, y, x, down=False):
+        'Is the cell located in the current down cursor (down=true) or across cursor (down=False)?'
         w = self.pos[(y, x)]
         if not w: return False
         cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
@@ -188,14 +190,15 @@ class Crossword:
         return sorted(cursor_words)[down] == sorted(w)[down]
 
     def charcolor(self, y, x, half=True):
+        'Return the curses color key for the character at pos y, x (to be used in half() or opt[key + "attr"]).'
         ch = self.cell(y, x)
         if ch == '#':
             return 'block'
         dcurs = self.is_cursor(y, x, down=True)
         acurs = self.is_cursor(y, x, down=False)
-        if acurs and dcurs: return 'curacr' if self.filldir == 'A' else 'curdown'
-        if acurs: return 'acr'
-        if dcurs: return 'down'
+        if acurs and dcurs: return 'curacr' if self.filldir == 'A' else 'curdown' # cell is intersect cursor, colored depending on current filldir
+        if acurs: return 'acr' # cell is across cursor, but not intersect
+        if dcurs: return 'down' # cell is down cursor, but not intersect
 
     def draw(self, scr):
         h, w = scr.getmaxyx()
@@ -227,30 +230,28 @@ class Crossword:
                 ch1 = ch # printed character
                 ch2 = opt.leftblankch # printed second half
 
-                attr = opt.fgbgattr
+                attr1 = opt.fgbgattr # colouring of printed character
 
                 if clr in "acr down curacr curdown".split():
-                    attr = colors[opt[clr+'attr'][0] + ' reverse']
+                    attr1 = colors[opt[clr+'attr'][0] + ' reverse']
                 elif clr:
-                    attr = getattr(opt, clr+'attr')
+                    attr1 = getattr(opt, clr+'attr')
 
                 if ch == UNFILLED:
                     ch1 = opt.unsolved_char
                 elif ch == '#':
                     ch1 = opt.midblankch
-                    attr = opt.blockattr
+                    attr1 = opt.blockattr
 
                 if clr or fclr:
                     attr2 = half(clr or 'bg', fclr or 'bg')  # colour of ch2
-                elif not (clr or fclr):
-                    attr2 = colors['white on black']
                 else:
-                    attr2 = colors['black on black']
+                    attr2 = colors['white on black']
 
 
                 if scr:
                     if x >= 0:
-                        scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
+                        scr.addstr(grid_top+y, grid_left+x*2, ch1, attr1)
                     scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
 
         if scr:
@@ -399,7 +400,6 @@ class CrosswordPlayer:
         elif k == 'KEY_LEFT': xd.cursorRight(-1)
         elif k == 'KEY_RIGHT': xd.cursorRight(+1)
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
-        elif k == '^R': xd.clear()
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return
