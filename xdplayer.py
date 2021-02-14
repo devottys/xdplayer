@@ -11,38 +11,48 @@ from tui import *
 UNFILLED = '.'
 
 opt = OptionsObject(
-    rowattr = ['', 'underline'],
+    fgbgattr = ['white on black', 'underline'],
+    fgattr = ['white'],
+    bgattr = ['black'],
+    gridattr = ['white'],
+    unsolvedattr = ['white'],
     acrattr = ['210'],
     downattr = ['74'],
     curacrattr = ['175'],
     curdownattr = ['189'],
     blockattr = ['white'],
+
     helpattr = ['bold 69'],
     clueattr = ['7'],
 
     topch = '▁_',
-    topattr = ['', 'underline'],
+    topattr = ['white', 'underline'],
     botch = '▇⎴',
-    botattr = ['reverse'],
+    botattr = ['black on white'],
     midblankch = '█',
     leftblankch = '▌',
-    rightblankch = '▐',
-    rightch = '▎▌│',
-    leftch = '▊▐│',
-    vline = '│┃|┆┇┊┋',
-    inside_vline = ' │|┆┃┆┇┊┋',
+#    rightblankch = '▐',
+#    rightch = '▎▌│',
+#    leftch = '▊▐│',
+#    vline = '│┃|┆┇┊┋',
+#    inside_vline = ' │|┆┃┆┇┊┋',
     leftattr = ['', 'reverse'],
     unsolved_char = '· .?□_▁-˙∙•╺‧',
     dirarrow = '→↪⇢⇨',
 
-    ulch = ' ▗',
-    urch = ' ▖',
-    blch = ' ▝',
-    brch = ' ▘',
     hotkeys= False,
 )
 
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
+
+def half(fg_coloropt, bg_coloropt):
+    return colors['%s on %s' % (opt[fg_coloropt+'attr'][0], opt[bg_coloropt+'attr'][0])]
+
+
+def log(*args):
+    print(*args, file=sys.stderr)
+    sys.stderr.flush()
+
 
 class Crossword:
     def __init__(self, fn):
@@ -126,7 +136,7 @@ class Crossword:
     def cell(self, r, c):
         if r < 0 or c < 0 or r >= self.nrows or c >= self.ncols:
             return '#'
-        return self.solution[r][c]
+        return self.grid[r][c]
 
     def iteranswers_full(self):
         'Generate ("A" or "D", clue_num, answer, r, c) for each word in the grid.'
@@ -171,6 +181,16 @@ class Crossword:
         if not cursor_words: return False
         return sorted(cursor_words)[down] == sorted(w)[down]
 
+    def charcolor(self, y, x, half=True):
+        ch = self.cell(y, x)
+        if ch == '#':
+            return 'block'
+        dcurs = self.is_cursor(y, x, down=True)
+        acurs = self.is_cursor(y, x, down=False)
+        if acurs and dcurs: return 'curacr' if self.filldir == 'A' else 'curdown'
+        if acurs: return 'acr'
+        if dcurs: return 'down'
+
     def draw(self, scr):
         h, w = scr.getmaxyx()
         # draw meta
@@ -192,132 +212,44 @@ class Crossword:
             cursor_across, cursor_down = None, None
 
         for y, row in enumerate(self.grid):
-            for x, ch in enumerate(row):
-                attr = opt.rowattr
-                attr2 = opt.rowattr
+            for x in range(-1, len(row)):
+                ch = self.cell(y, x)
+                clr = self.charcolor(y, x)
+                fch = self.cell(y, x+1)  # following char
+                fclr = self.charcolor(y, x+1) or 'bg' # following color
 
-                ch1 = ch
-                if ch == '#':
+                ch1 = ch # printed character
+                ch2 = opt.leftblankch # printed second half
+
+                attr = opt.fgbgattr
+
+                if clr in "acr down curacr curdown".split():
+                    attr = colors[opt[clr+'attr'][0] + ' reverse']
+                elif clr:
+                    attr = getattr(opt, clr+'attr')
+
+                if ch == UNFILLED:
+                    ch1 = opt.unsolved_char
+                elif ch == '#':
                     ch1 = opt.midblankch
+                    attr = opt.blockattr
+
+                if clr or fclr:
+                    attr2 = half(clr or 'bg', fclr or 'bg')  # colour of ch2
+                elif not (clr or fclr):
+                    attr2 = colors['white on black']
                 else:
-                    assert ch == self.grid[y][x]
-                    if ch == UNFILLED: ch1 = opt.unsolved_char
-
-                    ch2 = opt.inside_vline
-
-                    words = self.pos[(y,x)]
-                    across_word, down_word = sorted(words)
-                    if cursor_across == across_word and cursor_down == down_word:
-                        attr = attr2 = (opt.curacrattr if self.filldir == 'A' else opt.curdownattr) | curses.A_REVERSE
-                    elif cursor_across == across_word:
-                        attr = attr2 = opt.acrattr | curses.A_REVERSE
-                    elif cursor_down == down_word:
-                        attr = attr2 = opt.downattr | curses.A_REVERSE
-
-                # calc ch2 -- A2B
-                ch2 = opt.inside_vline
-                fch = self.cell(y, x+1)
-                bch = self.cell(y, x-1)
-                acursordown = cursor_down == down_word
-                acursoracr = cursor_across == across_word
-                fcursordown = self.is_cursor(y, x+1, down=True)
-                fcursoracr = self.is_cursor(y, x+1, down=False)
-
-                attr2 = attr
-
-                if ch == '#' and fch == '#': ch2 = opt.midblankch
-                elif fch == '#': ch2 = opt.rightblankch
-                elif ch == '#': ch2 = opt.leftblankch
-
-                if acursordown:
-                    # we are in Down Tab
-                    if fch == '#' and ch != '#':
-                        # if the vertical cursor is flush against a block to its right
-                        ch2 = opt.rightblankch
-                        attr2 = colors['white on ' + opt['downattr'][0]]
-                    else:
-                        if fcursoracr:
-                            attr2 = colors[opt['downattr'][0] + ' on ' + opt['acrattr'][0]]
-
-                if acursoracr:
-                    if fch == '#' and ch != '#':
-                        # make the right edge of across, flush with border
-                        attr2 = colors['white on ' + opt['acrattr'][0]]
-                        ch2 = opt.rightblankch
-                    else:
-                        if fcursordown:
-                            attr2 = colors[opt['acrattr'][0] + ' on ' + opt['downattr'][0]]
-
-
-                if fcursordown and not acursoracr:
-                    # ensure the vertical line is centered, when away from a border
-                    attr2 = colors[opt['downattr'][0]]
-                    ch2 = opt.rightblankch
-
-                # if it is an intersecting point between vertical and horizontal
-                if cursor_across == across_word and cursor_down == down_word and fch != '#' and ch != '#':
-                    ch2 = opt.midblankch
-                    attr2 = (opt.curacrattr if self.filldir == 'A' else opt.curdownattr)
-
-                def color(fg_optname, bg_optname):
-                    return colors[opt[fg_optname][0] + ' on ' + opt[bg_optname][0]]
-
-                if fcursordown and fcursoracr:
-                    ch2 = opt.rightblankch
-                    attr2 = color('curacrattr' if self.filldir == 'A' else 'curdownattr', 'acrattr')
-                elif fcursordown and ch == '#':
-                    ch2 = opt.rightblankch
-                    attr2 = color('downattr', 'blockattr')
-                elif fcursoracr and ch == '#':
-                    ch2 = opt.rightblankch
-                    attr2 = color('acrattr', 'blockattr')
+                    attr2 = colors['black on black']
 
 
                 if scr:
-                    scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
+                    if x >= 0:
+                        scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
                     scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
-
-                if x == 0:
-                    ch1 = opt.leftblankch
-                    if acursordown:
-                        cn = 'white on ' + opt['downattr'][0]
-                        attr = colors['white on ' + opt['downattr'][0]]
-                        ch1 = opt.leftblankch
-                    if acursoracr:
-                        cn = 'white on ' + opt['acrattr'][0]
-                        attr = colors[cn]
-                        ch1 = opt.leftblankch
-                    elif ch == '#':
-                        ch1 = opt.midblankch
-
-                    scr.addstr(grid_top+y, grid_left-1, ch1, attr)
-
-                if x == len(row)-1:
-                    if ch == '#':
-                        ch2 = opt.midblankch
-                        attr = color('blockattr', 'blockattr')
-                    elif acursoracr and acursordown:
-                        ch2 = opt.leftblankch
-                        attr = color('curacrattr' if self.filldir == 'A' else 'curdownattr', 'blockattr')
-                    elif acursoracr:
-                        ch2 = opt.leftblankch
-                        attr = color('acrattr', 'blockattr')
-                    elif acursordown:
-                        ch2 = opt.leftblankch
-                        attr = color('downattr', 'blockattr')
-
-                    scr.addstr(grid_top+y, grid_right-1, ch2, attr)
 
         if scr:
             scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
-            scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.rowattr | opt.botattr)
-
-            scr.addstr(grid_top-1, grid_left-1, opt.ulch)
-            scr.addstr(grid_bottom,grid_left-1, opt.blch)
-            scr.addstr(grid_top-1, grid_right-1, opt.urch)
-            scr.addstr(grid_bottom,grid_right-1, opt.brch)
-
-            scr.move(0,0)
+            scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
 
         def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'

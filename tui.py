@@ -15,12 +15,14 @@ class ColorMaker:
         self.attrs = {}
         self.color_attrs = {}
 
-#        self.color_attrs['black'] = curses.color_pair(0)
 
     def get_color(self, fg, bg):
+        if not self.color_attrs:
+            self.color_attrs[''] = curses.color_pair(0)
+
         if not self.color_attrs.get((fg,bg), None):
             try:
-                c = len(self.color_attrs)+1
+                c = len(self.color_attrs)
                 curses.init_pair(c, fg, bg)
                 self.color_attrs[(fg,bg)] = curses.color_pair(c)
             except curses.error as e:
@@ -29,6 +31,12 @@ class ColorMaker:
 
     def __getitem__(self, colornamestr):
         return self._colornames_to_cattr(colornamestr)
+
+    def to_name(self, attr):
+        for k, v in self.color_attrs.items():
+            if v == attr:
+                return k
+        return 'unknown'
 
     def _colornames_to_cattr(self, colornamestr):
         if not colornamestr:
