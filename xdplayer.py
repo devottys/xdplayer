@@ -16,6 +16,7 @@ opt = OptionsObject(
     downattr = ['74'],
     curacrattr = ['175'],
     curdownattr = ['189'],
+    blockattr = ['white'],
     helpattr = ['bold 69'],
     clueattr = ['7'],
 
@@ -236,16 +237,41 @@ class Crossword:
                         attr2 = colors['white on ' + opt['downattr'][0]]
                     else:
                         if fcursoracr:
-                            # if it is an intersecting point between vertical and horizontal
                             attr2 = colors[opt['downattr'][0] + ' on ' + opt['acrattr'][0]]
-                if acursoracr and fch == '#' and ch != '#':
-                    # make the right edge of across, flush with border
-                    attr2 = colors['white on ' + opt['acrattr'][0]]
-                    ch2 = opt.rightblankch
+
+                if acursoracr:
+                    if fch == '#' and ch != '#':
+                        # make the right edge of across, flush with border
+                        attr2 = colors['white on ' + opt['acrattr'][0]]
+                        ch2 = opt.rightblankch
+                    else:
+                        if fcursordown:
+                            attr2 = colors[opt['acrattr'][0] + ' on ' + opt['downattr'][0]]
+
 
                 if fcursordown and not acursoracr:
+                    # ensure the vertical line is centered, when away from a border
                     attr2 = colors[opt['downattr'][0]]
                     ch2 = opt.rightblankch
+
+                # if it is an intersecting point between vertical and horizontal
+                if cursor_across == across_word and cursor_down == down_word and fch != '#' and ch != '#':
+                    ch2 = opt.midblankch
+                    attr2 = (opt.curacrattr if self.filldir == 'A' else opt.curdownattr)
+
+                def color(fg_optname, bg_optname):
+                    return colors[opt[fg_optname][0] + ' on ' + opt[bg_optname][0]]
+
+                if fcursordown and fcursoracr:
+                    ch2 = opt.rightblankch
+                    attr2 = color('curacrattr' if self.filldir == 'A' else 'curdownattr', 'acrattr')
+                elif fcursordown and ch == '#':
+                    ch2 = opt.rightblankch
+                    attr2 = color('downattr', 'blockattr')
+                elif fcursoracr and ch == '#':
+                    ch2 = opt.rightblankch
+                    attr2 = color('acrattr', 'blockattr')
+
 
                 if scr:
                     scr.addstr(grid_top+y, grid_left+x*2, ch1, attr)
@@ -267,12 +293,18 @@ class Crossword:
                     scr.addstr(grid_top+y, grid_left-1, ch1, attr)
 
                 if x == len(row)-1:
-                    if acursoracr:
-                        attr = colors['white on ' + opt['curacrattr'][0]]
-                    if acursordown:
-                        attr = colors['white on ' + opt['curdownattr'][0]]
-                    if ch == '#' or acursordown:
-                        ch2 = opt.rightblankch
+                    if ch == '#':
+                        ch2 = opt.midblankch
+                        attr = color('blockattr', 'blockattr')
+                    elif acursoracr and acursordown:
+                        ch2 = opt.leftblankch
+                        attr = color('curacrattr' if self.filldir == 'A' else 'curdownattr', 'blockattr')
+                    elif acursoracr:
+                        ch2 = opt.leftblankch
+                        attr = color('acrattr', 'blockattr')
+                    elif acursordown:
+                        ch2 = opt.leftblankch
+                        attr = color('downattr', 'blockattr')
 
                     scr.addstr(grid_top+y, grid_right-1, ch2, attr)
 
