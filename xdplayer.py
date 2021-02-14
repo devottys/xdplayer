@@ -2,6 +2,7 @@
 
 import sys
 import textwrap
+import time
 import string
 import curses
 from collections import namedtuple, defaultdict
@@ -57,7 +58,19 @@ def log(*args):
 class Crossword:
     def __init__(self, fn):
         self.fn = fn
-        contents = open(fn).read()
+        self.load()
+
+        self.filldir = 'A'
+        self.cursor_x = 0
+        self.cursor_y = 0
+
+        self.clue_layout = {}
+
+        self.move_grid(3, len(self.meta))
+
+
+    def load(self):
+        contents = open(self.fn).read()
         metastr, gridstr, cluestr, *notestr = contents.split('\n\n\n')
 
         self.meta = {}
@@ -65,10 +78,8 @@ class Crossword:
             k, v = line.split(':', maxsplit=1)
             self.meta[k.strip()] = v.strip()
 
-        self.filldir = 'A'
         self.solution = gridstr.splitlines()
 
-        self.clear()
         self.grid = [[x for x in row] for row in self.solution]
 
         self.clues = {}  # 'A1' -> Clue
@@ -82,11 +93,6 @@ class Crossword:
                 dir, num = dirnum[0], int(dirnum[1:])
                 self.clues[dirnum] = BoardClue(dir, num, clue, answer, [])  # final is board positions, filled in below
 
-        self.cursor_x = 0
-        self.cursor_y = 0
-        self.clue_layout = {}
-
-        self.move_grid(3, len(self.meta))
 
         self.pos = defaultdict(list)  # (y,x) -> [(dir, num, answer), ...] associated words with that cell
         for dir, num, answer, r, c in self.iteranswers_full():
@@ -336,6 +342,10 @@ class Crossword:
             for clue in self.down_clues.values():
                 fp.write(f'{clue.dir}{clue.num}. {clue.clue}\n')
 
+    def setAtCursor(self, ch):
+        self.grid[self.cursor_y][self.cursor_x] = ch
+        self.save(self.fn)
+
 
 class CrosswordPlayer:
     def __init__(self):
@@ -351,9 +361,11 @@ class CrosswordPlayer:
         xd.draw(scr)
         if self.statuses:
             scr.addstr(h-2, clue_left, self.statuses.pop())
+        rstat = '%d%% solved (%d/%d)' % ((xd.nsolved*100/xd.ncells), xd.nsolved, xd.ncells)
+        scr.addstr(h-3, clue_left, rstat)
 
         # draw helpstr
-        scr.addstr(h-1, 0, " Arrows move | Tab toggle direction | Ctrl+S save | Ctrl+Q quit | Ctrl+R reset", opt.helpattr)
+        scr.addstr(h-1, 0, " Arrows move | Tab toggle direction | Ctrl+Q quit | Ctrl+R clear ", opt.helpattr)
 
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
@@ -394,21 +406,17 @@ class CrosswordPlayer:
 
         elif k == 'KEY_BACKSPACE':  # back up and erase
             xd.cursorMove(-1)
-            xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
+            xd.setAtCursor(UNFILLED)
         elif k == ' ':  # erase and advance
-            xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
+            xd.setAtCursor(UNFILLED)
             xd.cursorMove(+1)
         elif k == 'KEY_DC':  # erase in place
-            xd.grid[xd.cursor_y][xd.cursor_x] = UNFILLED
-        elif k == '^S':
-            xd.save(xd.fn)
-            self.status('saved (%d%% solved)' % (xd.nsolved*100/xd.ncells))
+            xd.setAtCursor(UNFILLED)
         elif opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
         elif k.upper() in string.ascii_uppercase:
-            xd.grid[xd.cursor_y][xd.cursor_x] = k.upper()
+            xd.setAtCursor(k.upper())
             xd.cursorMove(+1)
-
 
 
 def main(scr):
@@ -420,8 +428,12 @@ def main(scr):
 
     plyr = CrosswordPlayer()
     xd = Crossword(sys.argv[1])
+    lastt = 0
     while not plyr.play_one(scr, xd):
-        pass
+        t = time.time()
+        if t - lastt > 1:  # every second
+            xd.load()
+            lastt = t
 
 if '--clear' == sys.argv[1]:
     for fn in sys.argv[2:]:
