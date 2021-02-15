@@ -223,15 +223,19 @@ class Crossword:
 
     def draw(self, scr):
         h, w = scr.getmaxyx()
+
+        if h < self.nrows+4 or w < self.ncols+20:
+            raise Exception(f'terminal is  {w}x{h}; need {self.ncols+20}x{self.nrows+4}')
+        self.move_grid(3, max(0, min(h-self.nrows-2, len(self.meta))))
+
         # draw meta
         y = 0
         for k, v in self.meta.items():
-            if y >= h-self.nrows-2:
+            if y >= grid_top-1:
                 break
             scr.addstr(y, 1, '%10s: %s' % (k, v))
             y += 1
 
-        self.move_grid(3, max(0, min(h-self.nrows-2, y+1)))
 
         # draw grid
         d = opt
