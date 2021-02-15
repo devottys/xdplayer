@@ -33,15 +33,15 @@ def gen_xd(puzfn, clear=True):
     n = 0   # printed clue number
     for y, row in enumerate(grid):
         for x, cell in enumerate(row):
-            is_across = is_block(x-1, y) and not is_block(x, y)
-            is_down = is_block(x, y-1) and not is_block(x, y)
+            start_across = is_block(x-1, y) and not is_block(x, y)
+            start_down = is_block(x, y-1) and not is_block(x, y)
 
-            if is_across or is_down:
+            if start_across or start_down:
                 n += 1
-            if is_across:
+            if start_across:
                 across[n] = p.clues[i]
                 i += 1
-            if is_down:
+            if start_down:
                 down[n] = p.clues[i]
                 i += 1
 
