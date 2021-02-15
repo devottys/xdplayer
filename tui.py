@@ -3,7 +3,12 @@ import curses
 colors = None
 
 def getkeystroke(scr):
-    k = scr.get_wch()
+    k = None
+    while k is None:
+        try:
+            k = scr.get_wch()
+        except curses.error:
+            pass
     if isinstance(k, str):
         if ord(k) >= 32 and ord(k) != 127:  # 127 == DEL or ^?
             return k
