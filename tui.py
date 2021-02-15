@@ -8,7 +8,7 @@ def getkeystroke(scr):
         try:
             k = scr.get_wch()
         except curses.error:
-            pass
+            return ''
     if isinstance(k, str):
         if ord(k) >= 32 and ord(k) != 127:  # 127 == DEL or ^?
             return k

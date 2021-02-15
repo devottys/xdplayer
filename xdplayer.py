@@ -387,6 +387,7 @@ class CrosswordPlayer:
             scr.addstr(1, w-20, f'{h}x{w}')
         k = getkeystroke(scr)
         if k == '^Q': return True
+        if not k: return False
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
 
