@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from unittest import mock
 import sys
 import json
 import os.path
@@ -222,6 +223,9 @@ class Crossword:
         if dcurs: return 'down' # cell is down cursor, but not intersect
 
     def draw(self, scr):
+        if not scr:
+            scr = mock.MagicMock(__bool__=mock.Mock(return_value=False))
+
         h, w = scr.getmaxyx()
 
         if h < self.nrows+4 or w < self.ncols+20:
@@ -274,14 +278,12 @@ class Crossword:
                     attr2 = colors['white on black']
 
 
-                if scr:
-                    if x >= 0:
-                        scr.addstr(grid_top+y, grid_left+x*2, ch1, attr1)
-                    scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
+                if x >= 0:
+                    scr.addstr(grid_top+y, grid_left+x*2, ch1, attr1)
+                scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
 
-        if scr:
-            scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
-            scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
+        scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
+        scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
 
         def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'
@@ -406,8 +408,7 @@ class CrosswordPlayer:
         xd.draw(scr)
         if self.statuses:
             scr.addstr(h-2, clue_left, self.statuses.pop())
-        rstat = '%d%% solved (%d/%d)' % ((xd.nsolved*100/xd.ncells), xd.nsolved, xd.ncells)
-        scr.addstr(h-3, clue_left, rstat)
+        solvedamt = '%d%% solved (%d/%d)' % ((xd.nsolved*100/xd.ncells), xd.nsolved, xd.ncells)
 
         # draw time on bottom
         secs = time.time()-self.startt
@@ -415,7 +416,7 @@ class CrosswordPlayer:
         timestr += ' ' if int(secs) % 5 == 0 else ':'
         timestr += '%02d' % ((secs % 3600)//60)
 
-        botline = [timestr] + list("Arrows move | Tab toggle direction | Ctrl+Q quit".split(' | '))
+        botline = [solvedamt, timestr] + list("Arrows move | Tab toggle direction | Ctrl+Q quit".split(' | '))
 
         # draw helpstr
         scr.addstr(h-1, 10, opt.sepch.join(botline), opt.helpattr)
