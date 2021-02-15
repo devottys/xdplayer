@@ -439,6 +439,7 @@ def main(scr):
     curses.meta(1)
     curses.curs_set(0)
     curses.mousemask(-1)
+    scr.timeout(1000)
 
     plyr = CrosswordPlayer()
     xd = Crossword(sys.argv[1])
