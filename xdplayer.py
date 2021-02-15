@@ -25,9 +25,10 @@ opt = OptionsObject(
     curdownattr = ['189'],
     blockattr = ['white'],
 
-    helpattr = ['bold 69'],
+    helpattr = ['bold 109', 'bold 108', ],
     clueattr = ['7'],
 
+    sepch = list(' '+c+' ' for c in '·‧'),  #| .□-˙∙•╺'),
     topch = '▁_',
     topattr = ['white', 'underline'],
     botch = '▇⎴',
@@ -367,6 +368,7 @@ class CrosswordPlayer:
         self.statuses = []
         self.xd = None
         self.n = 0
+        self.startt = time.time()
 
     def status(self, s):
         self.statuses.append(s)
@@ -379,8 +381,16 @@ class CrosswordPlayer:
         rstat = '%d%% solved (%d/%d)' % ((xd.nsolved*100/xd.ncells), xd.nsolved, xd.ncells)
         scr.addstr(h-3, clue_left, rstat)
 
+        # draw time on bottom
+        secs = time.time()-self.startt
+        timestr = '% 2d' % (secs//3600) if secs > 3600 else '  '
+        timestr += ' ' if int(secs) % 5 == 0 else ':'
+        timestr += '%02d' % ((secs % 3600)//60)
+
+        botline = [timestr] + list("Arrows move | Tab toggle direction | Ctrl+Q quit".split(' | '))
+
         # draw helpstr
-        scr.addstr(h-1, 0, " Arrows move | Tab toggle direction | Ctrl+Q quit", opt.helpattr)
+        scr.addstr(h-1, 10, opt.sepch.join(botline), opt.helpattr)
 
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
