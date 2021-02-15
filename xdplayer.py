@@ -446,6 +446,7 @@ class CrosswordPlayer:
         elif k == 'KEY_LEFT': xd.cursorRight(-1)
         elif k == 'KEY_RIGHT': xd.cursorRight(+1)
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
+        elif k == '^S': xd.save(xd.fn); self.status('saved')
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return
