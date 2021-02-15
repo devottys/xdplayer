@@ -463,8 +463,11 @@ def main(scr):
 
 if '--clear' == sys.argv[1]:
     for fn in sys.argv[2:]:
-        xd = Crossword(fn)
-        xd.clear()
-        xd.save(fn)
+        try:
+            xd = Crossword(fn)
+            xd.clear()
+            xd.save(fn)
+        except Exception as e:
+            print(fn, str(e))
 else:
     curses.wrapper(main)
