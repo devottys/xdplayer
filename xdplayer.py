@@ -380,7 +380,7 @@ class CrosswordPlayer:
         scr.addstr(h-3, clue_left, rstat)
 
         # draw helpstr
-        scr.addstr(h-1, 0, " Arrows move | Tab toggle direction | Ctrl+Q quit | Ctrl+R clear ", opt.helpattr)
+        scr.addstr(h-1, 0, " Arrows move | Tab toggle direction | Ctrl+Q quit", opt.helpattr)
 
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
