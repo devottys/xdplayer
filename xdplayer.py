@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os.path
 import textwrap
 import time
 import string
@@ -8,6 +9,7 @@ import curses
 from collections import namedtuple, defaultdict
 
 from tui import *
+import puz2xd
 
 UNFILLED = '.'
 
@@ -58,7 +60,15 @@ def log(*args):
 
 class Crossword:
     def __init__(self, fn):
-        self.fn = fn
+        if fn.endswith('.puz'):
+            self.fn = fn[:-4] + '.xd'
+        else:
+            self.fn = fn
+
+        if not os.path.exists(self.fn):
+            self.load_puz(fn)
+            self.save()
+
         self.load()
 
         self.filldir = 'A'
@@ -69,9 +79,13 @@ class Crossword:
 
         self.move_grid(3, len(self.meta))
 
-
     def load(self):
-        contents = open(self.fn).read()
+        self.load_xd(open(self.fn).read())
+
+    def load_puz(self, fn):
+        self.load_xd('\n'.join(puz2xd.gen_xd(fn)))
+
+    def load_xd(self, contents):
         metastr, gridstr, cluestr, *notestr = contents.split('\n\n\n')
 
         self.meta = {}
