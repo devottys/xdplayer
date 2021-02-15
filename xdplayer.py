@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import json
 import os.path
 import textwrap
 import time
@@ -130,6 +131,10 @@ class Crossword:
 
     def clear(self):
         self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
+
+    @property
+    def guessfn(self):
+        return self.fn+'-guesses.jsonl'
 
     @property
     def acr_clues(self):
@@ -360,7 +365,9 @@ class Crossword:
 
     def setAtCursor(self, ch):
         self.grid[self.cursor_y][self.cursor_x] = ch
-        self.save(self.fn)
+
+        with open(self.guessfn, 'a') as fp:
+            fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch)) + '\n')
 
 
 class CrosswordPlayer:
@@ -369,9 +376,23 @@ class CrosswordPlayer:
         self.xd = None
         self.n = 0
         self.startt = time.time()
+        self.lastpos = 0
 
     def status(self, s):
         self.statuses.append(s)
+
+    def replay_guesses(self, xd):
+        if not os.path.exists(xd.guessfn):
+            return
+
+        with open(xd.guessfn) as fp:
+            fp.seek(self.lastpos)
+            for line in fp.read().splitlines():
+                d = json.loads(line)
+                x, y, ch = d['x'], d['y'], d['ch']
+                xd.grid[y][x] = ch
+
+            self.lastpos = fp.tell()
 
     def play_one(self, scr, xd):
         h, w = scr.getmaxyx()
@@ -439,7 +460,7 @@ class CrosswordPlayer:
             xd.setAtCursor(UNFILLED)
         elif opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
-        elif k.upper() in string.ascii_uppercase:
+        elif k.upper() in (string.ascii_uppercase+string.digits):
             xd.setAtCursor(k.upper())
             xd.cursorMove(+1)
 
@@ -454,12 +475,9 @@ def main(scr):
 
     plyr = CrosswordPlayer()
     xd = Crossword(sys.argv[1])
-    lastt = 0
+    plyr.replay_guesses(xd)
     while not plyr.play_one(scr, xd):
-        t = time.time()
-        if t - lastt > 1:  # every second
-            xd.load()
-            lastt = t
+        plyr.replay_guesses(xd)
 
 if '--clear' == sys.argv[1]:
     for fn in sys.argv[2:]:
