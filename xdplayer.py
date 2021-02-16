@@ -387,6 +387,9 @@ class Crossword:
     def setAtCursor(self, ch):
         self.grid[self.cursor_y][self.cursor_x] = ch
 
+        with open(self.guessfn, 'a') as fp:
+            fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch)) + '\n')
+
     def replay_guesses(self):
         if not os.path.exists(self.guessfn):
             return
@@ -403,8 +406,6 @@ class Crossword:
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
 
-        with open(self.guessfn, 'a') as fp:
-            fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch)) + '\n')
 
 
 class CrosswordPlayer:
