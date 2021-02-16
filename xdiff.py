@@ -7,6 +7,7 @@
         $TEAMDIR must be set.
 '''
 
+import os
 import sys
 import sqlite3
 import time
@@ -21,7 +22,7 @@ def main_diff():
     xd2.clear()
     xd2.replay_guesses()
 
-    conn = sqlite3.connect(getenv('XDDB', 'xd.db'))
+    conn = sqlite3.connect(os.getenv('XDDB', 'xd.db'))
     curs = conn.cursor()
     nonblocks = sum(1 for r in xd1.grid for c in r if c != '#')
 
