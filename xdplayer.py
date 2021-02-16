@@ -7,6 +7,7 @@ import textwrap
 import time
 import string
 import curses
+from pathlib import Path
 from collections import namedtuple, defaultdict
 
 from tui import *
@@ -383,6 +384,8 @@ class CrosswordPlayer:
 
     def replay_guesses(self, xd):
         if not os.path.exists(xd.guessfn):
+            guessfn = Path(xd.guessfn)
+            guessfn.touch(0o777)
             return
 
         with open(xd.guessfn) as fp:
@@ -489,4 +492,5 @@ if '--clear' == sys.argv[1]:
         except Exception as e:
             print(fn, str(e))
 else:
+    os.umask(0)
     curses.wrapper(main)
