@@ -1,5 +1,18 @@
 #!/usr/bin/env python3
+'''
+Usage:
+    xdplayer.py <test.xd>
+        Play <test.xd> (include any solved in .xd)
+        Ctrl+S to save over <test.xd>
 
+    xdplayer.py <test.puz>
+        Play <test.puz>, saving a cleared puzzle as test.puz.xd.
+        Ctrl+S to save as <test.puz.xd>
+
+    xdplayer.py --clear <test.xd> [...]
+        Clear the grid of one or more .xd files and save inplace.
+    Filling letters in from the grid will append to <test.xd>-guesses.jsonl (chmod).
+'''
 from unittest import mock
 import sys
 import json
@@ -31,7 +44,7 @@ opt = OptionsObject(
     helpattr = ['bold 109', 'bold 108', ],
     clueattr = ['7'],
 
-    sepch = list(' '+c+' ' for c in '·‧'),  #| .□-˙∙•╺'),
+    sepch = list(' '+c+' ' for c in '·‧˙|.□-∙•╺ '),
     topch = '▁_',
     topattr = ['white', 'underline'],
     botch = '▇⎴',
@@ -66,14 +79,10 @@ class Crossword:
     def __init__(self, fn):
         if fn.endswith('.puz'):
             self.fn = fn[:-4] + '.xd'
+            self.load_puz(fn)
         else:
             self.fn = fn
-
-        if not os.path.exists(self.fn):
-            self.load_puz(fn)
-            self.save()
-
-        self.load()
+            self.load()
 
         self.filldir = 'A'
         self.cursor_x = 0
@@ -373,6 +382,9 @@ class Crossword:
     def setAtCursor(self, ch):
         self.grid[self.cursor_y][self.cursor_x] = ch
 
+        if not os.path.exists(self.guessfn):
+            Path(self.guessfn).touch(0o777)
+
         with open(self.guessfn, 'a') as fp:
             fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch)) + '\n')
 
@@ -389,11 +401,6 @@ class CrosswordPlayer:
         self.statuses.append(s)
 
     def replay_guesses(self, xd):
-        if not os.path.exists(xd.guessfn):
-            guessfn = Path(xd.guessfn)
-            guessfn.touch(0o777)
-            return
-
         with open(xd.guessfn) as fp:
             fp.seek(self.lastpos)
             for line in fp.read().splitlines():
@@ -474,7 +481,7 @@ class CrosswordPlayer:
             xd.cursorMove(+1)
 
 
-def main(scr):
+def main_player(scr):
     curses.use_default_colors()
     curses.raw()
     curses.meta(1)
@@ -488,7 +495,8 @@ def main(scr):
     while not plyr.play_one(scr, xd):
         plyr.replay_guesses(xd)
 
-if '--clear' == sys.argv[1]:
+
+def main_clear():
     for fn in sys.argv[2:]:
         try:
             xd = Crossword(fn)
@@ -496,6 +504,13 @@ if '--clear' == sys.argv[1]:
             xd.save(fn)
         except Exception as e:
             print(fn, str(e))
-else:
-    os.umask(0)
-    curses.wrapper(main)
+
+
+if __name__ == '__main__':
+    if not sys.argv[1:]:
+        print(__doc__)
+    elif '--clear' in sys.argv[1]:
+        main_clear()
+    else:
+        os.umask(0)  # so guesses file can be chmod'd
+        curses.wrapper(main_player)
