@@ -150,7 +150,7 @@ class Crossword:
     @property
     def guessfn(self):
         xdid = Path(self.fn).stem
-        return Path(os.getenv('TEAMDIR', '.'))/(xdid+'-guesses.jsonl')
+        return Path(os.getenv('TEAMDIR', '.'))/(xdid+'.xd-guesses.jsonl')
 
     @property
     def acr_clues(self):

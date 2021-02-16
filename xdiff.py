@@ -16,9 +16,9 @@ from pathlib import Path
 from xdplayer import Crossword
 
 
-def main_diff():
-    xd1 = Crossword(sys.argv[1])
-    xd2 = Crossword(sys.argv[1])
+def main_diff(fn):
+    xd1 = Crossword(fn)
+    xd2 = Crossword(fn)
     xd2.clear()
     xd2.replay_guesses()
 
@@ -26,11 +26,9 @@ def main_diff():
     curs = conn.cursor()
     nonblocks = sum(1 for r in xd1.grid for c in r if c != '#')
 
-    for fn in sys.argv[2:]:
-        xd2 = Crossword(fn)
-        correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c == xd1.grid[y][x])
+    correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c == xd1.grid[y][x])
 
-        curs.execute('''INSERT INTO solvings VALUES (?, ?, ?, ?)''', (Path(fn).stem,
+    curs.execute('''INSERT INTO solvings VALUES (?, ?, ?, ?)''', (Path(fn).stem,
                 time.strftime("%Y-%m-%d %H:%M:%S"),
                 correct, nonblocks))
 
@@ -38,4 +36,4 @@ def main_diff():
 
 
 if __name__ == '__main__':
-    main_diff()
+    main_diff(sys.argv[1])
