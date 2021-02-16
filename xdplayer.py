@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 '''
 Usage:
     xdplayer.py <test.xd>
@@ -13,9 +14,11 @@ Usage:
         Clear the grid of one or more .xd files and save inplace.
     Filling letters in from the grid will append to <test.xd>-guesses.jsonl (chmod).
 '''
+
 from unittest import mock
 import sys
 import json
+import os
 import os.path
 import textwrap
 import time
@@ -87,6 +90,7 @@ class Crossword:
         self.filldir = 'A'
         self.cursor_x = 0
         self.cursor_y = 0
+        self.lastpos = 0  # for incremental replay_guesses
 
         self.clue_layout = {}
 
@@ -145,7 +149,8 @@ class Crossword:
 
     @property
     def guessfn(self):
-        return self.fn+'-guesses.jsonl'
+        xdid = Path(self.fn).stem
+        return Path(os.getenv('TEAMDIR', '.'))/(xdid+'-guesses.jsonl')
 
     @property
     def acr_clues(self):
@@ -382,6 +387,19 @@ class Crossword:
     def setAtCursor(self, ch):
         self.grid[self.cursor_y][self.cursor_x] = ch
 
+    def replay_guesses(self):
+        if not os.path.exists(self.guessfn):
+            return
+
+        with open(self.guessfn) as fp:
+            fp.seek(self.lastpos)
+            for line in fp.read().splitlines():
+                d = json.loads(line)
+                x, y, ch = d['x'], d['y'], d['ch']
+                self.grid[y][x] = ch
+
+            self.lastpos = fp.tell()
+
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
 
@@ -399,16 +417,6 @@ class CrosswordPlayer:
 
     def status(self, s):
         self.statuses.append(s)
-
-    def replay_guesses(self, xd):
-        with open(xd.guessfn) as fp:
-            fp.seek(self.lastpos)
-            for line in fp.read().splitlines():
-                d = json.loads(line)
-                x, y, ch = d['x'], d['y'], d['ch']
-                xd.grid[y][x] = ch
-
-            self.lastpos = fp.tell()
 
     def play_one(self, scr, xd):
         h, w = scr.getmaxyx()
@@ -491,9 +499,10 @@ def main_player(scr):
 
     plyr = CrosswordPlayer()
     xd = Crossword(sys.argv[1])
-    plyr.replay_guesses(xd)
+    xd.clear()
+    xd.replay_guesses()
     while not plyr.play_one(scr, xd):
-        plyr.replay_guesses(xd)
+        xd.replay_guesses()
 
 
 def main_clear():

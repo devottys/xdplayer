@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 '''
-    Usage:  xdiff.py <golden.xd> <test1.xd> [...]
+    Usage:  xdiff.py <golden.xd>
+
         Compare grid in test1.xd (and all others) to grid in <golden.xd> and report results in tabular form.
+        $TEAMDIR must be set.
 '''
 
 import sys
@@ -14,17 +16,13 @@ from xdplayer import Crossword
 
 
 def main_diff():
-    assert len(sys.argv) >= 3, 'need 2 crosswords to compare'
     xd1 = Crossword(sys.argv[1])
+    xd2 = Crossword(sys.argv[1])
+    xd2.clear()
+    xd2.replay_guesses()
 
-    conn = sqlite3.connect('xdp.db')
+    conn = sqlite3.connect(getenv('XDDB', 'xd.db'))
     curs = conn.cursor()
-    curs.execute('''CREATE TABLE IF NOT EXISTS solvings (
-                    xdid TEXT,
-                    date_checked TEXT,
-                    correct INT,
-                    nonblocks INT)''')
-
     nonblocks = sum(1 for r in xd1.grid for c in r if c != '#')
 
     for fn in sys.argv[2:]:

@@ -5,6 +5,7 @@
 # Record metadata for one or more puzzles to sqlite db 'xdmeta' table.
 # Save unsolved versions into <output_folder>.
 
+import os
 import sys
 import sqlite3
 from pathlib import Path
@@ -13,9 +14,7 @@ from xdplayer import Crossword
 
 
 def main_import():
-    outdir = Path(sys.argv[1])
-
-    conn = sqlite3.connect('xdp.db')
+    conn = sqlite3.connect(os.getenv('XDDB', 'xd.db'))
     curs = conn.cursor()
     curs.execute('''CREATE TABLE IF NOT EXISTS xdmeta (
                     xdid TEXT,
@@ -30,17 +29,23 @@ def main_import():
                     D1 TEXT
                     )''')
 
-    for fn in sys.argv[2:]:
+    curs.execute('''CREATE TABLE IF NOT EXISTS solvings (
+                    xdid TEXT,
+                    date_checked TEXT,
+                    correct INT,
+                    nonblocks INT)''')
+
+
+    for fn in sys.argv[1:]:
         xd = Crossword(fn)
         xdid = Path(fn).stem
-        xd.save(outdir/(xdid+'.xd'))
         for dir, num, answer, r, c in xd.iteranswers_full():
             if dir == 'A' and num == 1:
                 a1 = answer
             elif dir == 'D' and num == 1:
                 d1 = answer
 
-        curs.execute('''INSERT INTO xdmeta VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (xdid, fn,
+        curs.execute('''INSERT INTO xdmeta (xdid, path, size, title, author, editor, copyright, date_published, A1, D1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (xdid, str(Path(fn).absolute()),
                 f'{xd.ncols}x{xd.nrows}',
                 xd.meta.get('Title', ''),
                 xd.meta.get('Author', ''),
@@ -50,6 +55,7 @@ def main_import():
                 a1, d1))
 
     conn.commit()
+
 
 if __name__ == '__main__':
     main_import()
