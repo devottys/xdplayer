@@ -59,8 +59,6 @@ def main_import():
 
     conn.commit()
 
-    os.chmod(os.getenv('XDDB', 'xd.db'), stat.S_IRWXO)
-
 
 if __name__ == '__main__':
     main_import()
