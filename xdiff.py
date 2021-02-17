@@ -28,7 +28,7 @@ def main_diff(fn):
 
     correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c == xd1.grid[y][x])
 
-    curs.execute('''INSERT INTO solvings VALUES (?, ?, ?, ?)''', (Path(fn).stem,
+    curs.execute('''INSERT OR REPLACE INTO solvings (xdid, date_checked, correct, nonblocks) VALUES (?, ?, ?, ?)''', (Path(fn).stem,
                 time.strftime("%Y-%m-%d %H:%M:%S"),
                 correct, nonblocks))
 

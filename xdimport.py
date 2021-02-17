@@ -17,7 +17,7 @@ def main_import():
     conn = sqlite3.connect(os.getenv('XDDB', 'xd.db'))
     curs = conn.cursor()
     curs.execute('''CREATE TABLE IF NOT EXISTS xdmeta (
-                    xdid TEXT,
+                    xdid TEXT NOT NULL PRIMARY KEY,
                     path TEXT,
                     size TEXT,
                     title TEXT,
@@ -30,7 +30,7 @@ def main_import():
                     )''')
 
     curs.execute('''CREATE TABLE IF NOT EXISTS solvings (
-                    xdid TEXT,
+                    xdid TEXT NOT NULL PRIMARY KEY,
                     date_checked TEXT,
                     correct INT,
                     nonblocks INT)''')
