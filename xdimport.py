@@ -7,6 +7,7 @@
 
 import os
 import sys
+import stat
 import sqlite3
 from pathlib import Path
 
@@ -30,10 +31,12 @@ def main_import():
                     )''')
 
     curs.execute('''CREATE TABLE IF NOT EXISTS solvings (
-                    xdid TEXT NOT NULL PRIMARY KEY,
+                    xdid TEXT NOT NULL,
+                    teamid TEXT NOT NULL,
                     date_checked TEXT,
                     correct INT,
-                    nonblocks INT)''')
+                    nonblocks INT,
+                    PRIMARY KEY (xdid, teamid))''')
 
 
     for fn in sys.argv[1:]:
@@ -55,6 +58,8 @@ def main_import():
                 a1, d1))
 
     conn.commit()
+
+    os.chmod(os.getenv('XDDB', 'xd.db'), stat.S_IRWXO)
 
 
 if __name__ == '__main__':

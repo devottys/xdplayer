@@ -21,6 +21,7 @@ def main_diff(fn):
     xd2 = Crossword(fn)
     xd2.clear()
     xd2.replay_guesses()
+    teamid = str(xd2.guessfn).split('/')[-2]
 
     conn = sqlite3.connect(os.getenv('XDDB', 'xd.db'))
     curs = conn.cursor()
@@ -28,7 +29,7 @@ def main_diff(fn):
 
     correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c == xd1.grid[y][x])
 
-    curs.execute('''INSERT OR REPLACE INTO solvings (xdid, date_checked, correct, nonblocks) VALUES (?, ?, ?, ?)''', (Path(fn).stem,
+    curs.execute('''INSERT OR REPLACE INTO solvings (xdid, teamid, date_checked, correct, nonblocks) VALUES (?, ?, ?, ?, ?)''', (Path(fn).stem, teamid,
                 time.strftime("%Y-%m-%d %H:%M:%S"),
                 correct, nonblocks))
 

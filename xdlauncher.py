@@ -15,6 +15,7 @@ class xdLauncher(SqliteQuerySheet):
                     editor,
                     copyright,
                     date_published,
+                    solvings.teamid,
                     solvings.correct,
                     solvings.nonblocks,
                     path
