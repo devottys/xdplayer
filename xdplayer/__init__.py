@@ -388,7 +388,7 @@ class Crossword:
         self.grid[self.cursor_y][self.cursor_x] = ch
 
         with open(self.guessfn, 'a') as fp:
-            fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch)) + '\n')
+            fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch, user=os.getusername())) + '\n')
 
     def replay_guesses(self):
         if not os.path.exists(self.guessfn):
