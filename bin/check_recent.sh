@@ -2,7 +2,7 @@
 
 BINDIR=/opt/xdplayer
 
-$TEAMDIR=/opt/teams
+TEAMDIR=/opt/teams
 
 for TEAMID in * ; do
   for guesspath in $(find $TEAMDIR/$TEAMID -name \*.jsonl -mmin -60) ; do
