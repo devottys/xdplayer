@@ -11,4 +11,4 @@ mkdir -p $TEAMDIR
 chown $USER $TEAMDIR
 chmod ugo+rwx $TEAMDIR
 
-echo -e "TEAMID=$TEAMID\nTEAMDIR=$TEAMDIR\nXDDIR=$XDDIR\nXDDB=$XDDB" >> /home/$USER/.bashrc
+echo -e "export TEAMID=$TEAMID\nexport TEAMDIR=$TEAMDIR\nexport XDDIR=$XDDIR\nexport XDDB=$XDDB\nexport PYTHONPATH=/opt/xdplayer" >> /home/$USER/.bashrc
