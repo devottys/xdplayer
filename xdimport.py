@@ -40,7 +40,11 @@ def main_import():
 
 
     for fn in sys.argv[1:]:
-        xd = Crossword(fn)
+        try:
+            xd = Crossword(fn)
+        except KeyError:
+            print(f'Skipped {fn}, was not imported')
+            continue
         xdid = Path(fn).stem
         for dir, num, answer, r, c in xd.iteranswers_full():
             if dir == 'A' and num == 1:

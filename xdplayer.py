@@ -97,10 +97,7 @@ class Crossword:
         self.move_grid(3, len(self.meta))
 
     def load(self):
-        try:
-            self.load_xd(open(self.fn).read())
-        except KeyError:
-            print(self.fn)
+        self.load_xd(open(self.fn).read())
 
     def load_puz(self, fn):
         self.load_xd('\n'.join(puz2xd.gen_xd(fn)))
