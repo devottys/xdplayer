@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
-import puz
+from .puz import read as puz_read
 
 BLOCK = '#'
 
 def gen_xd(puzfn, clear=True):
-    p = puz.read(puzfn)
+    p = puz_read(puzfn)
 
     yield 'Title: ' + p.title.strip()
     yield 'Author: ' + p.author.strip()
