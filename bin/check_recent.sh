@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BINDIR=/opt/xdplayer
+BINDIR=/opt/xdplayer/bin
 
 TEAMDIR=/opt/teams
 
