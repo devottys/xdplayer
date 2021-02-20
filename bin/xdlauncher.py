@@ -28,7 +28,7 @@ class xdLauncher(SqliteQuerySheet):
     _ordering = [('modtime', True)]  # sort by reverse modtime initially
     def openRow(self, row):
         with SuspendCurses():
-            return subprocess.call(['./xdplayer.py', row[-1]])
+            return subprocess.call([os.getcwd() + '/xdplayer.py', row[-1]])
 
 
 visidata.run(xdLauncher('xd_launcher', source=Path(os.getenv('XDDB', 'xd.db'))))
