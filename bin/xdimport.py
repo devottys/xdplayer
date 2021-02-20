@@ -42,7 +42,7 @@ def main_import():
     for fn in sys.argv[1:]:
         try:
             xd = Crossword(fn)
-        except KeyError:
+        except Exception:
             print(f'Skipped {fn}, was not imported')
             continue
         xdid = Path(fn).stem
