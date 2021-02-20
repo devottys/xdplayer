@@ -18,5 +18,5 @@ cat <<-EOF >> /home/$USER/.bashrc
     export XDDB=$XDDB
     export PYTHONPATH=/opt/xdplayer
 
-    /opt/xdplayer/xdlauncher.py
+    /opt/xdplayer/bin/xdlauncher.py
 EOF
