@@ -262,7 +262,7 @@ class Crossword:
                 ch1 = ch # printed character
                 ch2 = opt.leftblankch # printed second half
 
-                attr1 = colors[self.guessercolors.get(self.guesser[(x,y)], 'white') + ' on black']
+                attr1 = colors[self.guessercolors.get(self.guesser[(x,y)], 'white') + ' on black bold']
 
                 if clr in "acr down curacr curdown".split():
                     attr1 = colors[opt[clr+'attr'][0] + ' reverse']
@@ -378,6 +378,9 @@ class Crossword:
                 fp.write(f'{clue.dir}{clue.num}. {clue.clue}\n')
 
     def setAtCursor(self, ch):
+        if self.grid[self.cursor_y][self.cursor_x] == ch:
+            return
+
         self.grid[self.cursor_y][self.cursor_x] = ch
 
         with open(self.guessfn, 'a') as fp:
@@ -395,7 +398,7 @@ class Crossword:
                 self.grid[y][x] = ch
                 user = d.get('user', '')
                 self.guesser[(x,y)] = user
-                if user not in self.guessercolors:
+                if user and user not in self.guessercolors:
                     self.guessercolors[user] = self.availcolors.pop()
 
 
