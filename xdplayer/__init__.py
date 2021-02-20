@@ -1,20 +1,5 @@
 #!/usr/bin/env python3
 
-'''
-Usage:
-    xdplayer.py <test.xd>
-        Play <test.xd> (include any solved in .xd)
-        Ctrl+S to save over <test.xd>
-
-    xdplayer.py <test.puz>
-        Play <test.puz>, saving a cleared puzzle as test.puz.xd.
-        Ctrl+S to save as <test.puz.xd>
-
-    xdplayer.py --clear <test.xd> [...]
-        Clear the grid of one or more .xd files and save inplace.
-    Filling letters in from the grid will append to <test.xd>-guesses.jsonl (chmod).
-'''
-
 from unittest import mock
 import sys
 import json
@@ -27,8 +12,8 @@ import curses
 from pathlib import Path
 from collections import namedtuple, defaultdict
 
-from tui import *
-import puz2xd
+from .tui import *
+from .puz2xd import gen_xd
 
 UNFILLED = '.'
 
@@ -100,7 +85,7 @@ class Crossword:
         self.load_xd(open(self.fn).read())
 
     def load_puz(self, fn):
-        self.load_xd('\n'.join(puz2xd.gen_xd(fn)))
+        self.load_xd('\n'.join(gen_xd(fn)))
 
     def load_xd(self, contents):
         metastr, gridstr, cluestr, *notestr = contents.split('\n\n\n')
@@ -514,13 +499,3 @@ def main_clear():
             xd.save(fn)
         except Exception as e:
             print(fn, str(e))
-
-
-if __name__ == '__main__':
-    if not sys.argv[1:]:
-        print(__doc__)
-    elif '--clear' in sys.argv[1]:
-        main_clear()
-    else:
-        os.umask(0)  # so guesses file can be chmod'd
-        curses.wrapper(main_player)
