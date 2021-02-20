@@ -99,6 +99,9 @@ class Crossword:
         self.solution = gridstr.splitlines()
 
         self.grid = [[x for x in row] for row in self.solution]
+        self.guesser = defaultdict(str)
+        self.guessercolors = defaultdict(str)
+        self.availcolors = 'blue red yellow green magenta cyan'.split()
 
         self.clues = {}  # 'A1' -> Clue
         for clue in cluestr.splitlines():
@@ -259,7 +262,7 @@ class Crossword:
                 ch1 = ch # printed character
                 ch2 = opt.leftblankch # printed second half
 
-                attr1 = opt.fgbgattr # colouring of printed character
+                attr1 = colors[self.guessercolors.get(self.guesser[(x,y)], 'white') + ' on black']
 
                 if clr in "acr down curacr curdown".split():
                     attr1 = colors[opt[clr+'attr'][0] + ' reverse']
@@ -315,6 +318,10 @@ class Crossword:
         clueh = self.nrows//2-1
         draw_clues(clue_top, self.acr_clues, cursor_across, clueh)
         draw_clues(clue_top+clueh+2, self.down_clues, cursor_down, clueh)
+
+        # draw solver list
+        for i, (user, color) in enumerate(self.guessercolors.items()):
+            scr.addstr(grid_bottom+1, grid_left+i*12, user, colors[color])
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
@@ -386,12 +393,16 @@ class Crossword:
                 d = json.loads(line)
                 x, y, ch = d['x'], d['y'], d['ch']
                 self.grid[y][x] = ch
+                user = d.get('user', '')
+                self.guesser[(x,y)] = user
+                if user not in self.guessercolors:
+                    self.guessercolors[user] = self.availcolors.pop()
+
 
             self.lastpos = fp.tell()
 
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
-
 
 
 class CrosswordPlayer:
@@ -490,13 +501,3 @@ def main_player(scr):
     xd.replay_guesses()
     while not plyr.play_one(scr, xd):
         xd.replay_guesses()
-
-
-def main_clear():
-    for fn in sys.argv[2:]:
-        try:
-            xd = Crossword(fn)
-            xd.clear()
-            xd.save(fn)
-        except Exception as e:
-            print(fn, str(e))
