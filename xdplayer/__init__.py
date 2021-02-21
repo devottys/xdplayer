@@ -445,7 +445,7 @@ class CrosswordPlayer:
         xd.draw(scr)
         if self.statuses:
             scr.addstr(h-2, clue_left, self.statuses.pop())
-        solvedamt = '%d/%d solved' % (xd.nsolved, xd.ncells)
+        solvedamt = '%d/%d' % (xd.nsolved, xd.ncells)
 
         # draw time on bottom
         secs = time.time()-self.startt
@@ -453,7 +453,7 @@ class CrosswordPlayer:
         timestr += ' ' if int(secs) % 5 == 0 else ':'
         timestr += '%02d' % ((secs % 3600)//60)
 
-        botline = [timestr, solvedamt] + list("Arrows move | Tab toggle direction | Ctrl+Q quit | Ctrl+S finalize".split(' | '))
+        botline = [timestr, solvedamt] + list("Tab toggle direction | Ctrl+Q quit | Ctrl+S finalize".split(' | '))
 
         # draw helpstr
         scr.addstr(h-1, 4, opt.sepch.join(botline), opt.helpattr)
