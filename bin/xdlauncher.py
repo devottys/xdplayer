@@ -46,7 +46,10 @@ class xdLauncher(SqliteQuerySheet):
                     date_published,
                     path
                 FROM xdmeta
-                LEFT OUTER JOIN solvings ON xdmeta.xdid = solvings.xdid'''
+                LEFT OUTER JOIN solvings ON xdmeta.xdid = solvings.xdid
+                WHERE solvings.teamid is not null
+                OR SUBSTR(DATE('now'), 6, 5) = SUBSTR(date_published, 6, 5)
+                '''
     columns = [
         Column('modtime', width=0, type=date, getter=lambda c,r: modtime(r[-1])),
         Column('submitted', width=0, getter=lambda c,r: is_submitted(r[-1])),
