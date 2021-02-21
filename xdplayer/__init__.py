@@ -172,7 +172,10 @@ class Crossword:
 
     @property
     def checkable(self):
-        return not (os.stat(self.guessfn).st_mode & stat.S_IWUSR)
+        try:
+            return not (os.stat(self.guessfn).st_mode & stat.S_IWUSR)
+        except FileNotFoundError:
+            return False
 
     def mark_done(self):
         os.chmod(self.guessfn, os.stat(self.guessfn).st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
@@ -338,7 +341,8 @@ class Crossword:
 
         # draw solver list
         for i, (user, color) in enumerate(self.guessercolors.items()):
-            scr.addstr(grid_bottom+1, grid_left+i*12, user, getattr(opt, color+'attr'))
+            s = '%s (%d%%)' % (user, sum(1 for (x,y), u in self.guesser.items() if u == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
+            scr.addstr(grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
@@ -441,7 +445,7 @@ class CrosswordPlayer:
         xd.draw(scr)
         if self.statuses:
             scr.addstr(h-2, clue_left, self.statuses.pop())
-        solvedamt = '%d%% solved (%d/%d)' % ((xd.nsolved*100/xd.ncells), xd.nsolved, xd.ncells)
+        solvedamt = '%d/%d solved' % (xd.nsolved, xd.ncells)
 
         # draw time on bottom
         secs = time.time()-self.startt
@@ -449,10 +453,10 @@ class CrosswordPlayer:
         timestr += ' ' if int(secs) % 5 == 0 else ':'
         timestr += '%02d' % ((secs % 3600)//60)
 
-        botline = [solvedamt, timestr] + list("Arrows move | Tab toggle direction | Ctrl+Q quit".split(' | '))
+        botline = [timestr, solvedamt] + list("Arrows move | Tab toggle direction | Ctrl+Q quit | Ctrl+S finalize".split(' | '))
 
         # draw helpstr
-        scr.addstr(h-1, 10, opt.sepch.join(botline), opt.helpattr)
+        scr.addstr(h-1, 4, opt.sepch.join(botline), opt.helpattr)
 
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
