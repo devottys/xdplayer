@@ -30,8 +30,8 @@ opt = OptionsObject(
     curacrattr = ['175'],
     curdownattr = ['189'],
     blockattr = ['white'],
-    pc1attr = ['14 on black'],
-    pc2attr = ['11 on black'],
+    pc1attr = ['121 on black'],
+    pc2attr = ['153 on black'],
     pc3attr = ['220 on black'],
     pc4attr = ['13 on black'],
     pc5attr = ['47 on black'],
@@ -278,7 +278,7 @@ class Crossword:
 
                 if clr in "acr down curacr curdown".split():
                     attr1 = colors[opt[clr+'attr'][0] + ' reverse']
-                elif ch != UNFILLED and ch != '#':
+                elif ch != '#':
                     attr1 = getattr(opt, self.guessercolors.get(self.guesser[(x,y)], 'fgbg')+'attr')
                     if self.checkable and self.solution[y][x] != ch:
                         attr1 |= curses.A_UNDERLINE
