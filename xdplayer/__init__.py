@@ -4,6 +4,7 @@ from unittest import mock
 import sys
 import json
 import os
+import stat
 import os.path
 import textwrap
 import getpass
@@ -169,6 +170,13 @@ class Crossword:
     def nsolved(self):
         return len([c for r in self.grid for c in r if c not in '.#'])
 
+    @property
+    def checkable(self):
+        return not (os.stat(self.guessfn).st_mode & stat.S_IWUSR)
+
+    def mark_done(self):
+        os.chmod(self.guessfn, os.stat(self.guessfn).st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+
     def cell(self, r, c):
         if r < 0 or c < 0 or r >= self.nrows or c >= self.ncols:
             return '#'
@@ -270,11 +278,10 @@ class Crossword:
 
                 if clr in "acr down curacr curdown".split():
                     attr1 = colors[opt[clr+'attr'][0] + ' reverse']
-                elif ch != UNFILLED and ch != '#' and self.solution[y][x] == ch:
+                elif ch != UNFILLED and ch != '#':
                     attr1 = getattr(opt, self.guessercolors.get(self.guesser[(x,y)], 'fgbg')+'attr')
-                    clr = None
-                elif ch != UNFILLED and ch != '#' and self.solution[y][x] != ch:
-                    attr1 = getattr(opt, self.guessercolors.get(self.guesser[(x,y)], 'fgbg')+'attr') | curses.A_UNDERLINE
+                    if self.checkable and self.solution[y][x] != ch:
+                        attr1 |= curses.A_UNDERLINE
                     clr = None
                 elif clr:
                     attr1 = getattr(opt, clr+'attr')
@@ -391,10 +398,10 @@ class Crossword:
         if self.grid[self.cursor_y][self.cursor_x] == ch:
             return
 
-        self.grid[self.cursor_y][self.cursor_x] = ch
-
         with open(self.guessfn, 'a') as fp:
             fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch, user=getpass.getuser())) + '\n')
+
+        self.grid[self.cursor_y][self.cursor_x] = ch
 
     def replay_guesses(self):
         if not os.path.exists(self.guessfn):
@@ -480,7 +487,7 @@ class CrosswordPlayer:
         elif k == 'KEY_LEFT': xd.cursorRight(-1)
         elif k == 'KEY_RIGHT': xd.cursorRight(+1)
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
-        elif k == '^S': xd.save(xd.fn); self.status('saved')
+        elif k == '^S': xd.mark_done(); self.status('puzzle submitted!')
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return
@@ -512,5 +519,11 @@ def main_player(scr):
     xd = Crossword(sys.argv[1])
     xd.clear()
     xd.replay_guesses()
-    while not plyr.play_one(scr, xd):
-        xd.replay_guesses()
+    while True:
+        try:
+            if plyr.play_one(scr, xd):
+                break
+        except PermissionError as e:
+            plyr.status('submitted puzzles cannot be changed')
+
+        xd.replay_guesses()  # from other player(s)
