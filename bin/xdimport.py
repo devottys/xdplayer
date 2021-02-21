@@ -52,14 +52,19 @@ def main_import():
             elif dir == 'D' and num == 1:
                 d1 = answer
 
-        curs.execute('''INSERT INTO xdmeta (xdid, path, size, title, author, editor, copyright, date_published, A1, D1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (xdid, str(Path(fn).absolute()),
-                f'{xd.ncols}x{xd.nrows}',
-                xd.meta.get('Title', ''),
-                xd.meta.get('Author', ''),
-                xd.meta.get('Editor', ''),
-                xd.meta.get('Copyright', ''),
-                xd.meta.get('Date', ''),
-                a1, d1))
+        try:
+            curs.execute('''INSERT INTO xdmeta (xdid, path, size, title, author, editor, copyright, date_published, A1, D1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (xdid, str(Path(fn).absolute()),
+                    f'{xd.ncols}x{xd.nrows}',
+                    xd.meta.get('Title', ''),
+                    xd.meta.get('Author', ''),
+                    xd.meta.get('Editor', ''),
+                    xd.meta.get('Copyright', ''),
+                    xd.meta.get('Date', ''),
+                    a1, d1))
+        except sqlite3.IntegrityError:
+            print(f"Failed to insert {fn}, already in database")
+            continue
+
 
     conn.commit()
 
