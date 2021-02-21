@@ -27,11 +27,11 @@ def modtime(fn):
         return None
     return g.st_mtime
 
-def solvetime(fn):
+def solve_hours(fn):
     g = stat_guesses(fn)
     if not g:
         return None
-    return g.st_ctime - g.st_mtime
+    return (g.st_ctime - g.st_mtime)/3600
 
 class xdLauncher(SqliteQuerySheet):
     query='''SELECT xdmeta.xdid,
@@ -50,7 +50,7 @@ class xdLauncher(SqliteQuerySheet):
     columns = [
         Column('modtime', width=0, type=date, getter=lambda c,r: modtime(r[-1])),
         Column('submitted', width=0, getter=lambda c,r: is_submitted(r[-1])),
-        Column('solve_secs', type=int, getter=lambda c,r: solvetime(r[-1])),
+        Column('solve_h', type=float, getter=lambda c,r: solve_hours(r[-1])),
     ]
     _ordering = [('modtime', True)]  # sort by reverse modtime initially
     def openRow(self, row):
