@@ -6,6 +6,7 @@ import stat
 
 import visidata
 from visidata import SqliteQuerySheet, Path, vd, Column, SuspendCurses, date, VisiData
+from visidata import copy, ColumnItem, IndexSheet
 
 
 def stat_guesses(fn):
@@ -33,8 +34,8 @@ def solve_hours(fn):
         return None
     return (g.st_ctime - g.st_mtime)/3600
 
-class xdLauncher(SqliteQuerySheet):
-    query='''SELECT xdmeta.xdid,
+
+launcher_select = '''SELECT xdmeta.xdid,
                     solvings.teamid,
                     solvings.correct,
                     solvings.nonblocks,
@@ -45,8 +46,13 @@ class xdLauncher(SqliteQuerySheet):
                     copyright,
                     date_published,
                     path
-                FROM xdmeta
-                LEFT OUTER JOIN solvings ON xdmeta.xdid = solvings.xdid
+                    FROM xdmeta
+                    LEFT OUTER JOIN solvings ON xdmeta.xdid = solvings.xdid
+                    '''
+
+class xdLauncherAll(SqliteQuerySheet):
+    # 3rd sheet: puzzles for this date, + started by all teams
+    query=launcher_select+'''
                 WHERE solvings.teamid is not null
                 OR SUBSTR(DATE('now'), 6, 5) = SUBSTR(date_published, 6, 5)
                 '''
@@ -59,6 +65,41 @@ class xdLauncher(SqliteQuerySheet):
     def openRow(self, row):
         with SuspendCurses():
             return subprocess.call(['python3', '-m', 'xdplayer', row[-1]])
+
+class xdLauncherWIP(xdLauncherAll):
+    'Load puzzles for this date in history, plus those started but not submitted by teamid.'
+    query=launcher_select+'''
+                WHERE solvings.teamid = ?
+                OR SUBSTR(DATE('now'), 6, 5) = SUBSTR(date_published, 6, 5)
+                '''
+
+    def iterload(self):
+        # this is copied from SqliteQuerySheet
+        with self.conn() as conn:
+            self.columns = []
+            for c in type(self).columns:
+                self.addColumn(copy(c))
+            self.result = self.execute(conn, self.query, parms=[os.getenv('TEAMID', '')])
+
+            for i, desc in enumerate(self.result.description):
+                self.addColumn(ColumnItem(desc[0], i))
+
+            # part that is different from SqliteQuerySheet
+            for row in self.result:
+                if not is_submitted(row[-1]):
+                    yield row
+
+class xdLauncherStarted(xdLauncherAll):
+    # 2nd sheet -> puzzles started by all teams
+    query=launcher_select+'''WHERE solvings.teamid is not null'''
+
+class xdLauncher(IndexSheet):
+    rowtype = 'views'
+    def iterload(self):
+        self.rows = []
+        yield xdLauncherWIP('play_next', source=self.source)
+        yield xdLauncherStarted('started_puzzles', source=self.source)
+        yield xdLauncherAll('all_puzzles', source=self.source)
 
 
 visidata.run(xdLauncher('xd_launcher', source=Path(os.getenv('XDDB', 'xd.db'))))
