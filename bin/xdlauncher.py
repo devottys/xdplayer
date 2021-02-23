@@ -44,7 +44,8 @@ launcher_select = '''SELECT
                     author,
                     editor,
                     copyright,
-                    path, xdmeta.xdid
+                    xdmeta.xdid,
+                    path
                     FROM xdmeta
                     LEFT OUTER JOIN solvings ON xdmeta.xdid = solvings.xdid
                     '''
