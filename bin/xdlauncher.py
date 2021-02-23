@@ -35,17 +35,16 @@ def solve_hours(fn):
     return (g.st_ctime - g.st_mtime)/3600
 
 
-launcher_select = '''SELECT xdmeta.xdid,
+launcher_select = '''SELECT
                     solvings.teamid,
-                    solvings.correct,
-                    solvings.nonblocks,
+                    solvings.correct*100/solvings.nonblocks AS completed,
+                    date_published,
                     size,
                     title,
                     author,
                     editor,
                     copyright,
-                    date_published,
-                    path
+                    path, xdmeta.xdid
                     FROM xdmeta
                     LEFT OUTER JOIN solvings ON xdmeta.xdid = solvings.xdid
                     '''
@@ -69,25 +68,9 @@ class xdLauncherAll(SqliteQuerySheet):
 class xdLauncherWIP(xdLauncherAll):
     'Load puzzles for this date in history, plus those started but not submitted by teamid.'
     query=launcher_select+'''
-                WHERE solvings.teamid = ?
-                OR SUBSTR(DATE('now'), 6, 5) = SUBSTR(date_published, 6, 5)
+                WHERE (solvings.submitted = 0 AND solvings.teamid = ?) OR (SUBSTR(DATE('now'), 6, 5) = SUBSTR(date_published, 6, 5))
                 '''
-
-    def iterload(self):
-        # this is copied from SqliteQuerySheet
-        with self.conn() as conn:
-            self.columns = []
-            for c in type(self).columns:
-                self.addColumn(copy(c))
-            self.result = self.execute(conn, self.query, parms=[os.getenv('TEAMID', '')])
-
-            for i, desc in enumerate(self.result.description):
-                self.addColumn(ColumnItem(desc[0], i))
-
-            # part that is different from SqliteQuerySheet
-            for row in self.result:
-                if not is_submitted(row[-1]):
-                    yield row
+    parms = [os.getenv('TEAMID', '')]
 
 class xdLauncherStarted(xdLauncherAll):
     # 2nd sheet -> puzzles started by all teams

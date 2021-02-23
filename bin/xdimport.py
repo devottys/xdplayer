@@ -36,6 +36,7 @@ def main_import():
                     date_checked TEXT,
                     correct INT,
                     nonblocks INT,
+                    submitted INT,
                     PRIMARY KEY (xdid, teamid))''')
 
 

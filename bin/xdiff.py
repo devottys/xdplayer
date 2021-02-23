@@ -9,12 +9,19 @@
 
 import os
 import sys
+import stat
 import sqlite3
 import time
 from pathlib import Path
 
 from xdplayer import Crossword
 
+def is_submitted(fn):
+    'Return True if exists and is readonly.'
+    g = Path(fn).stat()
+    if g and not (g.st_mode & stat.S_IWUSR):
+        return 1
+    return 0
 
 def main_diff(fn):
     xd1 = Crossword(fn)
@@ -29,9 +36,9 @@ def main_diff(fn):
 
     correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c == xd1.grid[y][x])
 
-    curs.execute('''INSERT OR REPLACE INTO solvings (xdid, teamid, date_checked, correct, nonblocks) VALUES (?, ?, ?, ?, ?)''', (Path(fn).stem, teamid,
+    curs.execute('''INSERT OR REPLACE INTO solvings (xdid, teamid, date_checked, correct, nonblocks, submitted) VALUES (?, ?, ?, ?, ?, ?)''', (Path(fn).stem, teamid,
                 time.strftime("%Y-%m-%d %H:%M:%S"),
-                correct, nonblocks))
+                correct, nonblocks, is_submitted(xd2.guessfn)))
 
     conn.commit()
 
