@@ -1,19 +1,19 @@
 # Crossword Player
 
-Play crosswords in the terminal.
-
+A compact and colorful terminal interface for solving crossword puzzles.
 
 ![xddemo](xddemo.gif)
 
-- requires Python3, no external library dependencies
-- works in the terminal using curses
-- supports [.xd](http://github.com/century-arcade/xd) and .puz files
-- Install: `pip3 install https://github.com/devotees/xdplayer.git`
-- Usage: `xdplayer <file.xd>`
+- requires Python3 (no external library dependencies)
+- works in classic 80x25 terminal size (up to 21x21 puzzle)
+- requires 256-color terminal
+- supports crosswords in [.xd format](https://www.youtube.com/watch?v=9aHfK8EUIzg) and AcrossLite .puz format
+- Install: `pip3 install https://github.com/devottys/xdplayer.git`
+- Usage: `xdplayer <file.xd|file.puz>`
 
-There are two crosswords to play with in `samples/`.
+There are two sample crosswords to play with in `samples/`.
 
-## Commands
+## Keyboard Commands
 
 - Arrow keys: move cursor
 - click on a grid square or a clue to jump to that location in the grid
@@ -29,6 +29,7 @@ in the current directory or in the location set by the `$TEAMDIR` shell environm
 - Ctrl+X: enable hotkeys to cycle through display configurable options. These options are all set at the top of `xdplayer/__init__.py`, should you wish to modify them.
 - Ctrl+Q: quit program.
 
-## Prior Art
-- [puzterm](https://github.com/rparrett/puzterm)
-- [cursewords](https://github.com/thisisparker/cursewords)
+## Similar Projects
+
+- [puzterm](https://github.com/rparrett/puzterm) (2018, Rust)
+- [cursewords](https://github.com/thisisparker/cursewords) (2019, Python)
