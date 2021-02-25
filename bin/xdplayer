@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 Usage:
     python3 -m xdplayer <test.xd>
@@ -15,7 +17,7 @@ import os
 import sys
 import curses
 
-from . import main_player
+from xdplayer import main_player
 
 if __name__ == '__main__':
     if not sys.argv[1:]:
