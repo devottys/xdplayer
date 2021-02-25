@@ -28,3 +28,7 @@ in the current directory or in the location set by the `$TEAMDIR` shell environm
 - Ctrl+S: commits to and checks your solution. The **crosswordfilename-guesses.jsonl** will be set to read-only, and "wrong" entries will be underlined.
 - Ctrl+X: enable hotkeys to cycle through display configurable options. These options are all set at the top of `xdplayer/__init__.py`, should you wish to modify them.
 - Ctrl+Q: quit program.
+
+## Prior Art
+- [puzterm](https://github.com/rparrett/puzterm)
+- [cursewords](https://github.com/thisisparker/cursewords)
