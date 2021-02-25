@@ -8,7 +8,7 @@ Play crosswords in the terminal.
 - requires Python3, no external library dependencies
 - works in the terminal using curses
 - supports [.xd](http://github.com/century-arcade/xd) and .puz files
-- Install: `pip3 install https://github.com/devotees/xdplayer.git`
+- Install: `pip3 install https://github.com/devottys/xdplayer.git`
 - Usage: `xdplayer <file.xd>`
 
 There are two crosswords to play with in `samples/` and a collection of xds on [xd.saul.pw](https://xd.saul.pw).
