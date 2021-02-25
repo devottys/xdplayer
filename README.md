@@ -8,7 +8,7 @@ A compact and colorful terminal interface for solving crossword puzzles.
 - works in classic 80x25 terminal size (up to 21x21 puzzle)
 - requires 256-color terminal
 - supports crosswords in [.xd format](https://www.youtube.com/watch?v=9aHfK8EUIzg) and AcrossLite .puz format
-- Install: `pip3 install https://github.com/devottys/xdplayer.git`
+- Install: `pip3 install git+https://github.com/devottys/xdplayer.git`
 - Usage: `xdplayer <file.xd|file.puz>`
 
 There are some crosswords to play with in `samples/` and a collection of xds on [xd.saul.pw/data](https://xd.saul.pw/data).
