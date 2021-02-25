@@ -34,7 +34,7 @@ def main_diff(fn):
     curs = conn.cursor()
     nonblocks = sum(1 for r in xd1.grid for c in r if c != '#')
 
-    correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c == xd1.grid[y][x])
+    correct = sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c.upper() == xd1.grid[y][x].upper())
 
     curs.execute('''INSERT OR REPLACE INTO solvings (xdid, teamid, date_checked, correct, nonblocks, submitted) VALUES (?, ?, ?, ?, ?, ?)''', (Path(fn).stem, teamid,
                 time.strftime("%Y-%m-%d %H:%M:%S"),
