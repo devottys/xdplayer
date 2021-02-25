@@ -11,7 +11,7 @@ Play crosswords in the terminal.
 - Install: `pip3 install https://github.com/devottys/xdplayer.git`
 - Usage: `xdplayer <file.xd>`
 
-There are two crosswords to play with in `samples/` and a collection of xds on [xd.saul.pw](https://xd.saul.pw).
+There are some crosswords to play with in `samples/` and a collection of xds on [xd.saul.pw/data](https://xd.saul.pw/data).
 
 ## Commands
 
