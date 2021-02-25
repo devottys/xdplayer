@@ -64,7 +64,7 @@ class xdLauncherAll(SqliteQuerySheet):
     _ordering = [('modtime', True)]  # sort by reverse modtime initially
     def openRow(self, row):
         with SuspendCurses():
-            return subprocess.call(['python3', '-m', 'xdplayer', row[-1]])
+            return subprocess.call(['bin/xdplayer', row[-1]])
 
 class xdLauncherWIP(xdLauncherAll):
     'Load puzzles for this date in history, plus those started but not submitted by teamid.'
