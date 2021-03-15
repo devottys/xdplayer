@@ -16,6 +16,7 @@ from collections import namedtuple, defaultdict
 
 from .tui import *
 from .puz2xd import gen_xd
+from .ddwplay import AnimationMgr
 
 UNFILLED = '.'
 
@@ -436,6 +437,10 @@ class CrosswordPlayer:
         self.n = 0
         self.startt = time.time()
         self.lastpos = 0
+        self.animmgr = AnimationMgr()
+
+        self.animmgr.load('bouncyball', open('bouncyball.ddw'))
+
 
     def status(self, s):
         self.statuses.append(s)
@@ -461,13 +466,23 @@ class CrosswordPlayer:
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
             scr.addstr(1, w-20, f'{h}x{w}')
+
+        now = time.time()
+        nextt = self.animmgr.draw(scr, now)
+        timeout = int((nextt-now)*1000)
+        if timeout < 0:
+            self.status(f'{timeout}')
+            scr.timeout(1)
+        else:
+            scr.timeout(timeout)
+
         k = getkeystroke(scr)
+        scr.erase()
         if k == '^Q': return True
         if not k: return False
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
 
-        scr.erase()
         if opt.hotkeys:
             scr.addstr(0, w-20, k)
             scr.addstr(0, w-5, str(self.n))
@@ -495,6 +510,8 @@ class CrosswordPlayer:
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return
+        elif k == '^R':
+            self.animmgr.trigger('bouncyball', x=26, y=2, loop=True)
 
         elif k == 'KEY_BACKSPACE':  # back up and erase
             xd.cursorMove(-1)
@@ -517,7 +534,6 @@ def main_player(scr):
     curses.meta(1)
     curses.curs_set(0)
     curses.mousemask(-1)
-    scr.timeout(1000)
 
     plyr = CrosswordPlayer()
     xd = Crossword(sys.argv[1])
