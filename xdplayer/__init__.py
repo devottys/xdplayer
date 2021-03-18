@@ -142,6 +142,14 @@ class Crossword:
     def clear(self):
         self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
 
+    def grade():
+        'Return the number of correct tiles'
+        xd1 = Crossword(self.fn)
+        xd2 = Crossword(self.fn)
+        xd2.clear()
+        xd2.replay_guesses()
+        return sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c.upper() == xd1.grid[y][x].upper())
+
     @property
     def guessfn(self):
         xdid = Path(self.fn).stem
@@ -476,6 +484,16 @@ class CrosswordPlayer:
         else:
             scr.timeout(timeout)
 
+        # if crossword is complete, check correct cell count
+        if xd.nsolved == xd.ncells:
+            correct = xd.grade()
+
+            if correct == xd.ncells:
+                xd.mark_done()
+                self.status('puzzle complete! nicely done')
+            else:
+                self.status(f'no cigar! {xd.ncells - correct} are wrong')
+
         k = getkeystroke(scr)
         scr.erase()
         if k == '^Q': return True
@@ -544,6 +562,6 @@ def main_player(scr):
             if plyr.play_one(scr, xd):
                 break
         except PermissionError as e:
-            plyr.status('submitted puzzles cannot be changed')
+            plyr.status('puzzle submitted! submitted puzzles cannot be changed')
 
         xd.replay_guesses()  # from other player(s)
