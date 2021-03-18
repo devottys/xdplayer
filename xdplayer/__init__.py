@@ -439,9 +439,11 @@ class Crossword:
 
 
 class CrosswordPlayer:
-    def __init__(self):
+    def __init__(self, crossword_paths):
+        from collections import deque
         self.statuses = []
-        self.xd = None
+        self.crossword_paths = deque(crossword_paths)
+        self._xd = None
         self.n = 0
         self.startt = time.time()
         self.lastpos = 0
@@ -449,6 +451,28 @@ class CrosswordPlayer:
 
         self.animmgr.load('bouncyball', open('bouncyball.ddw'))
 
+    @property
+    def xd(self):
+        if self._xd is None:
+            xd = self.crossword_paths.popleft()
+            self.crossword_paths.append(xd)
+            xd = Crossword(xd)
+            xd.clear()
+            xd.replay_guesses()
+            self._xd = xd
+        return self._xd
+
+    @xd.setter
+    def xd(self, xd_new):
+        xd_new = Crossword(xd_new)
+        xd_new.clear()
+        xd_new.replay_guesses()
+        self._xd = xd_new
+
+    def next_crossword(self):
+        self.xd = self.crossword_paths.popleft()
+        self.crossword_paths.append(self.xd)
+        self.xd.replay_guesses()
 
     def status(self, s):
         self.statuses.append(s)
@@ -500,6 +524,7 @@ class CrosswordPlayer:
         if not k: return False
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
+        if k == '^N': self.next_crossword()
 
         if opt.hotkeys:
             scr.addstr(0, w-20, k)
@@ -552,16 +577,12 @@ def main_player(scr):
     curses.meta(1)
     curses.curs_set(0)
     curses.mousemask(-1)
-
-    plyr = CrosswordPlayer()
-    xd = Crossword(sys.argv[1])
-    xd.clear()
-    xd.replay_guesses()
+    plyr = CrosswordPlayer(sys.argv[1:])
     while True:
         try:
-            if plyr.play_one(scr, xd):
+            if plyr.play_one(scr, plyr.xd):
                 break
         except PermissionError as e:
             plyr.status('puzzle submitted! submitted puzzles cannot be changed')
 
-        xd.replay_guesses()  # from other player(s)
+        plyr.xd.replay_guesses()  # from other player(s)
