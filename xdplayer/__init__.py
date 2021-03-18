@@ -142,7 +142,7 @@ class Crossword:
     def clear(self):
         self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
 
-    def grade():
+    def grade(self):
         'Return the number of correct tiles'
         xd1 = Crossword(self.fn)
         xd2 = Crossword(self.fn)
