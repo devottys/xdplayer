@@ -17,6 +17,9 @@ from collections import namedtuple, defaultdict
 from .tui import *
 from .puz2xd import gen_xd
 from .ddwplay import AnimationMgr
+from .vdlauncher import vdLauncher
+import visidata
+from visidata import SuspendCurses
 
 UNFILLED = '.'
 
@@ -525,6 +528,12 @@ class CrosswordPlayer:
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
         if k == '^N': self.next_crossword()
+        if k == '^V':
+            curses.endwin()
+            visidata.run(vdLauncher('xd_overview', source=Path(os.getenv('XDDB', 'xd.db'))))
+            curses.reset_prog_mode()
+            scr.clear()
+            curses.doupdate()
 
         if opt.hotkeys:
             scr.addstr(0, w-20, k)
