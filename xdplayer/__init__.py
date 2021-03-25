@@ -571,13 +571,13 @@ class CrosswordPlayer:
             xd.cursorMove(+1)
 
 
-def main_player(scr):
+def main_player(scr, *args):
     curses.use_default_colors()
     curses.raw()
     curses.meta(1)
     curses.curs_set(0)
     curses.mousemask(-1)
-    plyr = CrosswordPlayer(sys.argv[1:])
+    plyr = CrosswordPlayer(args)
     while True:
         try:
             if plyr.play_one(scr, plyr.xd):
