@@ -87,6 +87,8 @@ class xdLauncher(IndexSheet):
 
 
 import sqlite3
+import curses
+from xdplayer import main_player
 conn = sqlite3.connect(str(Path(os.getenv('XDDB', 'xd.db')).resolve()))
 query = launcher_select+'''
                 WHERE (solvings.submitted = 0 AND solvings.teamid = ?) OR (SUBSTR(DATE('now', '-1 day'), 6, 5) = SUBSTR(date_published, 6, 5))
@@ -94,6 +96,7 @@ query = launcher_select+'''
 parms = [os.getenv('TEAMID', '')]
 results = conn.execute(query, parms)
 crossword_paths = [res[-1] for res in results]
-subprocess.call(['bin/xdplayer'] + crossword_paths)
+os.umask(0) # so guesses file can be chmod'd
+curses.wrapper(main_player, *crossword_paths)
 
 #visidata.run(xdLauncher('xd_launcher', source=Path(os.getenv('XDDB', 'xd.db'))))
