@@ -529,11 +529,10 @@ class CrosswordPlayer:
         if k == '^L': scr.clear()
         if k == '^N': self.next_crossword()
         if k == '^V':
-            curses.endwin()
-            visidata.run(vdLauncher('xd_overview', source=Path(os.getenv('XDDB', 'xd.db'))))
-            curses.reset_prog_mode()
-            scr.clear()
-            curses.doupdate()
+            visidata.colors.setup()
+            visidata.vd.push(vdLauncher('xd_overview', source=Path(os.getenv('XDDB', 'xd.db'))))
+            visidata.vd.mainloop(scr)
+            colors.color_attrs.clear()
 
         if opt.hotkeys:
             scr.addstr(0, w-20, k)
