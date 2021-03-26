@@ -19,7 +19,6 @@ from .puz2xd import gen_xd
 from .ddwplay import AnimationMgr
 from .vdlauncher import vdLauncher
 import visidata
-from visidata import SuspendCurses
 
 UNFILLED = '.'
 
