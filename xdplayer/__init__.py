@@ -445,29 +445,23 @@ class CrosswordPlayer:
     def __init__(self, crossword_paths):
         from collections import deque
         self.statuses = []
-        self.crossword_paths = deque(crossword_paths)
-        self._xd = None
+        self.crossword_paths = deque([Crossword(xd) for xd in crossword_paths])
         self.n = 0
+        self._xd = None
         self.startt = time.time()
         self.lastpos = 0
         self.animmgr = AnimationMgr()
 
         self.animmgr.load('bouncyball', open('bouncyball.ddw'))
+        self.next_crossword()
+
 
     @property
     def xd(self):
-        if self._xd is None:
-            xd = self.crossword_paths.popleft()
-            self.crossword_paths.append(xd)
-            xd = Crossword(xd)
-            xd.clear()
-            xd.replay_guesses()
-            self._xd = xd
         return self._xd
 
     @xd.setter
     def xd(self, xd_new):
-        xd_new = Crossword(xd_new)
         xd_new.clear()
         xd_new.replay_guesses()
         self._xd = xd_new
@@ -527,7 +521,9 @@ class CrosswordPlayer:
         if not k: return False
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
         if k == '^L': scr.clear()
-        if k == '^N': self.next_crossword()
+        if k == '^N':
+            self.next_crossword()
+            scr.clear()
         if k == '^V':
             visidata.colors.setup()
             visidata.vd.push(vdLauncher('xd_overview', source=Path(os.getenv('XDDB', 'xd.db'))))
