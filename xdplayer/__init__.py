@@ -446,7 +446,7 @@ class CrosswordPlayer:
         self.statuses = []
         self.crossword_paths = deque([Crossword(xd) for xd in crossword_paths])
         self.n = 0
-        self._xd = None
+        self.xd = None
         self.startt = time.time()
         self.lastpos = 0
         self.animmgr = AnimationMgr()
@@ -455,19 +455,10 @@ class CrosswordPlayer:
         self.next_crossword()
 
 
-    @property
-    def xd(self):
-        return self._xd
-
-    @xd.setter
-    def xd(self, xd_new):
-        xd_new.clear()
-        xd_new.replay_guesses()
-        self._xd = xd_new
-
     def next_crossword(self):
         self.xd = self.crossword_paths.popleft()
         self.crossword_paths.append(self.xd)
+        self.xd.clear()
         self.xd.replay_guesses()
 
     def status(self, s):
