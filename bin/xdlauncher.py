@@ -24,7 +24,7 @@ launcher_select = '''SELECT
 
 conn = sqlite3.connect(str(Path(os.getenv('XDDB', 'xd.db')).resolve()))
 query = launcher_select+'''
-                WHERE (solvings.submitted = 0 AND solvings.teamid = ?) OR (SUBSTR(DATE('now', '-1 day'), 6, 5) = SUBSTR(date_published, 6, 5))
+                WHERE (solvings.submitted = 0 and solvings.teamid = ?) OR (SUBSTR(DATE('now', '-2 day'), 1, 10) = SUBSTR(date_published, 1, 10))
                 '''
 parms = [os.getenv('TEAMID', '')]
 
