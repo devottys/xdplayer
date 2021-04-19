@@ -19,6 +19,7 @@ from .puz2xd import gen_xd
 from .ddwplay import AnimationMgr
 from .vdlauncher import vdLauncher
 import visidata
+from visidata import clipdraw
 
 UNFILLED = '.'
 
@@ -257,8 +258,6 @@ class Crossword:
 
         h, w = scr.getmaxyx()
 
-        if h < self.nrows+4 or w < self.ncols+20:
-            raise Exception(f'terminal is  {w}x{h}; need {self.ncols+20}x{self.nrows+4}')
         self.move_grid(3, max(0, min(h-self.nrows-2, len(self.meta))))
 
         # draw meta
@@ -266,7 +265,7 @@ class Crossword:
         for k, v in self.meta.items():
             if y >= grid_top-1:
                 break
-            scr.addstr(y, 1, '%10s: %s' % (k, v))
+            clipdraw(scr, y, 1, '%10s: %s' % (k, v), 0)
             y += 1
 
 
@@ -313,11 +312,11 @@ class Crossword:
 
 
                 if x >= 0:
-                    scr.addstr(grid_top+y, grid_left+x*2, ch1, attr1)
-                scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
+                    clipdraw(scr, grid_top+y, grid_left+x*2, ch1, attr1)
+                clipdraw(scr, grid_top+y, grid_left+x*2+1, ch2, attr2)
 
-        scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
-        scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
+        clipdraw(scr, grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
+        clipdraw(scr, grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
 
         def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'
@@ -330,7 +329,7 @@ class Crossword:
                 if cursor_clue == clue:
                     attr = (opt.acrattr if clue.dir == 'A' else opt.downattr) | curses.A_REVERSE
                     if self.filldir == clue.dir:
-                        scr.addstr(clue_top+y, clue_left-2, f'{opt.dirarrow} ', (opt.acrattr if clue.dir == 'A' else opt.downattr))
+                        clipdraw(scr, clue_top+y, clue_left-2, f'{opt.dirarrow} ', (opt.acrattr if clue.dir == 'A' else opt.downattr))
                 else:
                     attr = opt.clueattr
 
@@ -338,12 +337,12 @@ class Crossword:
                 guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
                 self.clue_layout[dirnum] = y
                 dnw = len(dirnum)+2
-                maxw = min(w-clue_left-dnw-1, 40)
+                maxw = max(min(w-clue_left-dnw-1, 40), 1)
                 for j, line in enumerate(textwrap.wrap(clue.clue + f' [{guess}]', width=maxw)):
                     prefix = f'{dirnum}. ' if j == 0 else ' '*dnw
                     line = prefix + line + ' '*(maxw-len(line))
                     self.clue_layout[clue_top+y] = clue
-                    scr.addstr(clue_top+y, clue_left, line, attr)
+                    clipdraw(scr, clue_top+y, clue_left, line, attr)
                     y += 1
 
         clueh = self.nrows//2-1
@@ -353,7 +352,7 @@ class Crossword:
         # draw solver list
         for i, (user, color) in enumerate(self.guessercolors.items()):
             s = '%s (%d%%)' % (user, sum(1 for (x,y), u in self.guesser.items() if u == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
-            scr.addstr(grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
+            clipdraw(scr, grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
@@ -364,9 +363,9 @@ class Crossword:
 
             y = grid_top+self.nrows+i+1
             if y < h-1:
-                scr.addstr(y, 3, key)
-                scr.addstr(y, 5, k)
-                scr.addstr(y, 15, ' '.join(map(str, v)))
+                clipdraw(scr, y, 3, key, 0)
+                clipdraw(scr, y, 5, k, 0)
+                clipdraw(scr, y, 15, ' '.join(map(str, v)), 0)
 
     def cursorDown(self, n):
         i = n
@@ -468,7 +467,7 @@ class CrosswordPlayer:
         h, w = scr.getmaxyx()
         xd.draw(scr)
         if self.statuses:
-            scr.addstr(h-2, clue_left, self.statuses.pop())
+            clipdraw(scr, h-2, clue_left, self.statuses.pop(), 0)
         solvedamt = '%d/%d' % (xd.nsolved, xd.ncells)
 
         # draw time on bottom
@@ -477,14 +476,18 @@ class CrosswordPlayer:
         timestr += ' ' if int(secs) % 5 == 0 else ':'
         timestr += '%02d' % ((secs % 3600)//60)
 
-        botline = [timestr, solvedamt] + list("Tab toggle direction | Ctrl+Q quit | Ctrl+S finalize".split(' | '))
+        h, w = scr.getmaxyx()
 
+        if h < xd.nrows+4 or w < xd.ncols+40:
+            botline = [timestr, solvedamt] + [f'terminal is {w}x{h}; need {xd.ncols+20}x{xd.nrows+4}']
+        else:
+            botline = [timestr, solvedamt] + list("Tab toggle direction | Ctrl+Q quit | Ctrl+S finalize".split(' | '))
         # draw helpstr
-        scr.addstr(h-1, 4, opt.sepch.join(botline), opt.helpattr)
+        clipdraw(scr, h-1, 4, opt.sepch.join(botline), opt.helpattr)
 
         if opt.hotkeys:
             xd.draw_hotkeys(scr)
-            scr.addstr(1, w-20, f'{h}x{w}')
+            clipdraw(scr, 1, w-20, f'{h}x{w}', 0)
 
         now = time.time()
         nextt = self.animmgr.draw(scr, now)
@@ -521,8 +524,8 @@ class CrosswordPlayer:
             colors.color_attrs.clear()
 
         if opt.hotkeys:
-            scr.addstr(0, w-20, k)
-            scr.addstr(0, w-5, str(self.n))
+            clipdraw(scr, 0, w-20, k, 0)
+            clipdraw(scr, 0, w-5, str(self.n), 0)
         self.n += 1
 
         if k == 'KEY_MOUSE':
