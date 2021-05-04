@@ -458,6 +458,7 @@ class CrosswordPlayer:
         self.xd = self.crossword_paths.popleft()
         self.crossword_paths.append(self.xd)
         self.xd.clear()
+        self.xd.lastpos = 0
         self.xd.replay_guesses()
 
     def status(self, s):
