@@ -93,7 +93,7 @@ class Crossword:
         self.move_grid(3, len(self.meta))
 
     def load(self):
-        self.load_xd(open(self.fn).read())
+        self.load_xd(open(self.fn, encoding='utf-8').read())
 
     def load_puz(self, fn):
         self.load_xd('\n'.join(gen_xd(fn)))
