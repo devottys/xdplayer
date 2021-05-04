@@ -24,4 +24,4 @@ if __name__ == '__main__':
         print(__doc__)
     else:
         os.umask(0)  # so guesses file can be chmod'd
-        curses.wrapper(main_player)
+        curses.wrapper(main_player, *sys.argv[1:])
