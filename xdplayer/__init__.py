@@ -39,6 +39,7 @@ opt = OptionsObject(
     pc3attr = ['220 on black'],
     pc4attr = ['13 on black'],
     pc5attr = ['47 on black'],
+    pcwattr = ['white on black'],
 
     helpattr = ['bold 109', 'bold 108', ],
     clueattr = ['7'],
@@ -430,7 +431,10 @@ class Crossword:
                 user = d.get('user', '')
                 self.guesser[(x,y)] = user
                 if user and user not in self.guessercolors:
-                    self.guessercolors[user] = 'pc%d' % (len(self.guessercolors)+1)
+                    if len(self.guessercolors) >= 5:
+                        self.guessercolors[user] = 'pcw'
+                    else:
+                        self.guessercolors[user] = 'pc%d' % (len(self.guessercolors)+1)
 
 
             self.lastpos = fp.tell()
