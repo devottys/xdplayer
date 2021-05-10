@@ -156,8 +156,11 @@ class Crossword:
 
     @property
     def guessfn(self):
-        xdid = Path(self.fn).stem
-        return Path(os.getenv('TEAMDIR', '.'))/(xdid+'.xd-guesses.jsonl')
+        return Path(os.getenv('TEAMDIR', '.'))/(self.xdid+'.xd-guesses.jsonl')
+
+    @property
+    def xdid(self):
+        return Path(self.fn).stem
 
     @property
     def acr_clues(self):
@@ -414,7 +417,7 @@ class Crossword:
             return
 
         with open(self.guessfn, 'a') as fp:
-            fp.write(json.dumps(dict(x=self.cursor_x, y=self.cursor_y, ch=ch, user=os.getenv('USER', getpass.getuser()))) + '\n')
+            fp.write(json.dumps(dict(xdid=self.xdid, x=self.cursor_x, y=self.cursor_y, ch=ch, user=os.getenv('USER', getpass.getuser()))) + '\n')
 
         self.grid[self.cursor_y][self.cursor_x] = ch
 
