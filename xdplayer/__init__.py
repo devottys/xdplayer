@@ -100,6 +100,7 @@ class Crossword:
         self.cursor_y = 0
         self.lastpos = 0  # for incremental replay_guesses
 
+        self.undos = []  # list of guess rows that have been written since last move
         self.clue_layout = {}
 
         self.move_grid(3, len(self.meta))
@@ -121,7 +122,7 @@ class Crossword:
         self.solution = gridstr.splitlines()
 
         self.grid = [[x for x in row] for row in self.solution]
-        self.guesser = defaultdict(str)
+        self.guesser = defaultdict(dict)  # (x,y) -> guess row
         self.guessercolors = defaultdict(str)
 
         self.clues = {}  # 'A1' -> Clue
@@ -302,12 +303,12 @@ class Crossword:
                 ch1 = ch # printed character
                 ch2 = opt.leftblankch # printed second half
 
-                attr1 = colors[self.guessercolors.get(self.guesser[(x,y)], 'white') + ' on black']
+                attr1 = colors[self.guessercolors.get(self.guesser[(x,y)].get('user', ''), 'white') + ' on black']
 
                 if clr in "acr down curacr curdown".split():
                     attr1 = colors[opt[clr+'attr'][0] + ' reverse']
                 elif ch != '#':
-                    attr1 = getattr(opt, self.guessercolors.get(self.guesser[(x,y)], 'fgbg')+'attr')
+                    attr1 = getattr(opt, self.guessercolors.get(self.guesser[(x,y)].get('user', ''), 'fgbg')+'attr')
                     if self.checkable and self.solution[y][x] != ch:
                         attr1 |= curses.A_UNDERLINE
                     clr = None
@@ -371,7 +372,7 @@ class Crossword:
 
         # draw solver list
         for i, (user, color) in enumerate(self.guessercolors.items()):
-            s = '%s (%d%%)' % (user, sum(1 for (x,y), u in self.guesser.items() if u == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
+            s = '%s (%d%%)' % (user, sum(1 for (x,y), r in self.guesser.items() if r.get('user', '') == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
             clipdraw(scr, grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
 
     def draw_hotkeys(self, scr):
@@ -436,6 +437,10 @@ class Crossword:
             fp.write(json.dumps(dict(xdid=self.xdid, x=self.cursor_x, y=self.cursor_y, ch=ch, user=os.getenv('USER', getpass.getuser()))) + '\n')
 
         self.grid[self.cursor_y][self.cursor_x] = ch
+        prevrow = self.guesser[(self.cursor_x,self.cursor_y)]
+        if not prevrow:
+            prevrow = dict(xdid=self.xdid, x=self.cursor_x, y=self.cursor_y, ch=UNFILLED)
+        self.undos.append(prevrow)
 
     def replay_guesses(self):
         if not os.path.exists(self.guessfn):
@@ -448,7 +453,7 @@ class Crossword:
                 x, y, ch = d['x'], d['y'], d['ch']
                 self.grid[y][x] = ch
                 user = d.get('user', '')
-                self.guesser[(x,y)] = user
+                self.guesser[(x,y)] = d
                 if user and user not in self.guessercolors:
                     if len(self.guessercolors) >= 5:
                         self.guessercolors[user] = 'pcw'
@@ -565,15 +570,25 @@ class CrosswordPlayer:
             else:
                 self.status(f'{bstate}({y},{x})')
 
-        elif k == 'KEY_DOWN': xd.cursorDown(+1)
-        elif k == 'KEY_UP': xd.cursorDown(-1)
-        elif k == 'KEY_LEFT': xd.cursorRight(-1)
-        elif k == 'KEY_RIGHT': xd.cursorRight(+1)
+        elif k == 'KEY_DOWN': xd.cursorDown(+1); xd.undos.clear()
+        elif k == 'KEY_UP': xd.cursorDown(-1); xd.undos.clear()
+        elif k == 'KEY_LEFT': xd.cursorRight(-1); xd.undos.clear()
+        elif k == 'KEY_RIGHT': xd.cursorRight(+1); xd.undos.clear()
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
         elif k == '^S': xd.mark_done(); self.status('puzzle submitted!')
         elif k == '^X':
             opt.hotkeys = not opt.hotkeys
             return
+        elif k == '^Z':
+            if not xd.undos:
+                self.status('nothing to undo')
+                return
+            with open(xd.guessfn, 'a') as fp:
+                while xd.undos:
+                    r = xd.undos.pop()
+                    fp.write(json.dumps(r) + '\n')
+                xd.cursor_x = r['x']
+                xd.cursor_y = r['y']
         elif k == '^R':
             self.animmgr.trigger('bouncyball', x=26, y=2, loop=True)
 
