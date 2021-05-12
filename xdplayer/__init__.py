@@ -31,6 +31,8 @@ opt = OptionsObject(
     unsolvedattr = ['white'],
     acrattr = ['210'],
     downattr = ['74'],
+    arrowacrattr = ['black on white'],
+    arrowdownattr = ['black on white'],
     curacrattr = ['175'],
     curdownattr = ['189'],
     blockattr = ['white'],
@@ -65,7 +67,9 @@ opt = OptionsObject(
 #    inside_vline = ' │|┆┃┆┇┊┋',
     leftattr = ['', 'reverse'],
     unsolved_char = '· .?□_▁-˙∙•╺‧',
-    dirarrow = '→↪⇢⇨',
+    rightarrow = '⇨→↪⇢',
+    downarrow = '⇩↓⇓⇣⬇',
+    dirarrow = '⇨→↪⇢',
 
     hotkeys= False,
 )
@@ -313,8 +317,12 @@ class Crossword:
                 if ch == UNFILLED:
                     ch1 = opt.unsolved_char
                 elif ch == '#':
-                    ch1 = opt.midblankch
-                    attr1 = opt.blockattr
+                    if self.filldir == 'A':
+                        ch1 = opt.rightarrow
+                        attr1 = opt.arrowacrattr
+                    else:
+                        ch1 = opt.downarrow
+                        attr1 = opt.arrowdownattr
 
                 if clr or fclr:
                     attr2 = half(clr or 'bg', fclr or 'bg')  # colour of ch2
@@ -340,7 +348,8 @@ class Crossword:
                 if cursor_clue == clue:
                     attr = (opt.acrattr if clue.dir == 'A' else opt.downattr) | curses.A_REVERSE
                     if self.filldir == clue.dir:
-                        clipdraw(scr, clue_top+y, clue_left-2, f'{opt.dirarrow} ', (opt.acrattr if clue.dir == 'A' else opt.downattr))
+                        arrow = opt.rightarrow if self.filldir == 'A' else opt.downarrow
+                        clipdraw(scr, clue_top+y, clue_left-2, f'{arrow} ', (opt.acrattr if clue.dir == 'A' else opt.downattr))
                 else:
                     attr = opt.clueattr
 
@@ -369,7 +378,7 @@ class Crossword:
         self.hotkeys = {}
         h, w = scr.getmaxyx()
         for i, (k, v) in enumerate(opt.items()):
-            key = "0123456789abcdefghijklmnopqrstuvwxyz"[i]
+            key = "0123456789abcdefghijklmnopqrstuvwxyzABCDEF"[i]
             self.hotkeys[key] = k
 
             y = grid_top+self.nrows+i+1
