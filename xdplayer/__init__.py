@@ -478,7 +478,7 @@ class CrosswordPlayer:
         self.lastpos = 0
         self.animmgr = AnimationMgr()
 
-        self.animmgr.load('bouncyball', open('bouncyball.ddw'))
+        #self.animmgr.load('bouncyball', open('bouncyball.ddw'))
         self.next_crossword()
 
 
@@ -589,8 +589,6 @@ class CrosswordPlayer:
                     fp.write(json.dumps(r) + '\n')
                 xd.cursor_x = r['x']
                 xd.cursor_y = r['y']
-        elif k == '^R':
-            self.animmgr.trigger('bouncyball', x=26, y=2, loop=True)
 
         elif k == 'KEY_BACKSPACE':  # back up and erase
             xd.cursorMove(-1)
