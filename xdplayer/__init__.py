@@ -455,7 +455,7 @@ class Crossword:
                 user = d.get('user', '')
                 self.guesser[(x,y)] = d
                 if user and user not in self.guessercolors:
-                    if len(self.guessercolors) >= 5:
+                    if len(self.guessercolors) >= 13:
                         self.guessercolors[user] = 'pcw'
                     else:
                         self.guessercolors[user] = 'pc%d' % (len(self.guessercolors)+1)
