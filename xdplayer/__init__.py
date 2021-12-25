@@ -512,9 +512,10 @@ class CrosswordPlayer:
         h, w = scr.getmaxyx()
 
         if h < xd.nrows+4 or w < xd.ncols+40:
-            botline = [timestr, solvedamt] + [f'terminal is {w}x{h}; need {xd.ncols+20}x{xd.nrows+4}']
+            botline = [timestr, solvedamt] + [f'terminal is {w}x{h}; need {2*xd.ncols+20}x{xd.nrows+4}']
         else:
             botline = [timestr, solvedamt] + list("Tab toggle direction | Ctrl+Q quit | Ctrl+N next puzzle | Ctrl+Z undo word".split(' | '))
+
         # draw helpstr
         clipdraw(scr, h-1, 4, opt.sepch.join(botline), opt.helpattr)
 
