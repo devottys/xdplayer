@@ -31,7 +31,7 @@ conn = sqlite3.connect(str(Path(os.getenv('XDDB', 'xd.db')).resolve()))
 #parms = [os.getenv('TEAMID', '')]
 
 query = launcher_select
-parm []
+parms = []
 
 results = conn.execute(query, parms)
 
