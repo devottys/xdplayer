@@ -290,12 +290,15 @@ class Crossword:
         else:
             cursor_across, cursor_down = None, None
 
+        charcolors = [{x:self.charcolor(y, x) for x in range(-1, len(row)+1)} for y, row in enumerate(self.grid)]
+        cells = [{x:self.cell(y, x) for x in range(-1, len(row)+1)} for y, row in enumerate(self.grid)]
+
         for y, row in enumerate(self.grid):
             for x in range(-1, len(row)):
-                ch = self.cell(y, x)
-                clr = self.charcolor(y, x)
-                fch = self.cell(y, x+1)  # following char
-                fclr = self.charcolor(y, x+1) or 'bg' # following color
+                ch = cells[y][x]
+                clr = charcolors[y][x]
+                fch = cells[y][x+1]  # following char
+                fclr = charcolors[y][x+1] or 'bg' # following color
 
                 ch1 = ch # printed character
                 ch2 = opt.leftblankch # printed second half
