@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from unittest import mock
+import functools
 import sys
 import json
 import os
@@ -76,6 +77,7 @@ opt = OptionsObject(
 
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
 
+@functools.lru_cache
 def half(fg_coloropt, bg_coloropt):
     'Return curses color code for {fg_coloropt} colored character on a {bg_coloropt} colored background.'
     return colors['%s on %s' % (opt[fg_coloropt+'attr'][0], opt[bg_coloropt+'attr'][0])]
@@ -88,6 +90,8 @@ def log(*args):
 
 class Crossword:
     def __init__(self, fn):
+        self.checkable = False
+
         if fn.endswith('.puz'):
             self.fn = fn[:-4] + '.xd'
             self.load_puz(fn)
@@ -107,6 +111,10 @@ class Crossword:
 
     def load(self):
         self.load_xd(open(self.fn, encoding='utf-8').read())
+        try:
+            self.checkable = not (os.stat(self.guessfn).st_mode & stat.S_IWUSR)
+        except FileNotFoundError:
+            self.checkable = False
 
     def load_puz(self, fn):
         self.load_xd('\n'.join(gen_xd(fn)))
@@ -122,6 +130,9 @@ class Crossword:
         self.solution = gridstr.splitlines()
 
         self.grid = [[x for x in row] for row in self.solution]
+        self.nrows = len(self.grid)
+        self.ncols = len(self.grid[0])
+
         self.guesser = defaultdict(dict)  # (x,y) -> guess row
         self.guessercolors = defaultdict(str)
 
@@ -183,27 +194,12 @@ class Crossword:
         return {k:v for k, v in self.clues.items() if k[0] == 'D'}
 
     @property
-    def nrows(self):
-        return len(self.grid)
-
-    @property
-    def ncols(self):
-        return len(self.grid[0])
-
-    @property
     def ncells(self):
         return len([c for r in self.grid for c in r if c != '#'])
 
     @property
     def nsolved(self):
         return len([c for r in self.grid for c in r if c not in '.#'])
-
-    @property
-    def checkable(self):
-        try:
-            return not (os.stat(self.guessfn).st_mode & stat.S_IWUSR)
-        except FileNotFoundError:
-            return False
 
     def mark_done(self):
         os.chmod(self.guessfn, os.stat(self.guessfn).st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))

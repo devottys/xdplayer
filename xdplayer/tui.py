@@ -1,3 +1,4 @@
+import functools
 import curses
 
 colors = None
@@ -43,6 +44,7 @@ class ColorMaker:
                 return k
         return 'unknown'
 
+    @functools.lru_cache
     def _colornames_to_cattr(self, colornamestr):
         if not colornamestr:
             return 0
