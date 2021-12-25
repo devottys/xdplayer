@@ -100,8 +100,9 @@ class Crossword:
             self.load()
 
         self.filldir = 'A'
-        self.cursor_x = 0
+        self.cursor_x = -1
         self.cursor_y = 0
+        self.cursorRight(1)
         self.lastpos = 0  # for incremental replay_guesses
 
         self.undos = []  # list of guess rows that have been written since last move
