@@ -328,11 +328,11 @@ class Crossword:
 
 
                 if x >= 0:
-                    clipdraw(scr, grid_top+y, grid_left+x*2, ch1, attr1)
-                clipdraw(scr, grid_top+y, grid_left+x*2+1, ch2, attr2)
+                    scr.addstr(grid_top+y, grid_left+x*2, ch1, attr1)
+                scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
 
-        clipdraw(scr, grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
-        clipdraw(scr, grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
+        scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
+        scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
 
         def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'
