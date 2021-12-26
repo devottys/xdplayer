@@ -108,7 +108,7 @@ class Crossword:
         self.undos = []  # list of guess rows that have been written since last move
         self.clue_layout = {}
 
-        self.move_grid(3, len(self.meta))
+        self.move_grid(3, len(self.meta), 80, 25)
 
     def load(self):
         self.load_xd(open(self.fn, encoding='utf-8').read())
@@ -157,14 +157,15 @@ class Crossword:
                 self.pos[coord].append(w)
                 w[-1].append(coord)
 
-    def move_grid(self, x, y):
+    def move_grid(self, x, y, w, h):
         global grid_bottom, grid_right, grid_top, grid_left
-        global clue_left, clue_top
+        global clue_left, clue_top, clue_minw
         grid_left = x
         grid_top = y
         grid_bottom = grid_top + self.nrows
         grid_right = grid_left + self.ncols*2
-        clue_left = grid_right+3
+        clue_minw = 25
+        clue_left = min(grid_right, w-clue_minw+2)+3
         clue_top = grid_top
 
     def clear(self):
@@ -271,7 +272,7 @@ class Crossword:
 
         h, w = scr.getmaxyx()
 
-        self.move_grid(3, max(0, min(h-self.nrows-2, len(self.meta))))
+        self.move_grid(3, max(0, min(h-self.nrows-2, len(self.meta))), w, h)
 
         # draw meta
         y = 0
@@ -290,11 +291,23 @@ class Crossword:
         else:
             cursor_across, cursor_down = None, None
 
-        charcolors = [{x:self.charcolor(y, x) for x in range(-1, len(row)+1)} for y, row in enumerate(self.grid)]
-        cells = [{x:self.cell(y, x) for x in range(-1, len(row)+1)} for y, row in enumerate(self.grid)]
+        charcolors = {y:{x:self.charcolor(y, x) for x in range(-1, self.ncols+2)} for y in range(-1, self.nrows+2)}
+        cells = {y:{x:self.cell(y, x) for x in range(-1, self.ncols+2)} for y in range(-1, self.nrows+2)}
 
-        for y, row in enumerate(self.grid):
-            for x in range(-1, len(row)):
+        scry = grid_top
+        ya = self.cursor_y - h//2
+        yb = self.nrows-h+2
+        miny = max(0, min(ya, yb))
+        for y in range(miny, len(self.grid)):
+            if scry > h-1: break
+            xa = self.cursor_x - (w-clue_minw)//4
+            xb = self.ncols-(w-clue_minw)//2
+            minx = max(-1, min(xa, xb))
+
+            scrx = grid_left-1
+            for x in range(minx, self.ncols):
+                if scrx > w-clue_minw: break
+
                 ch = cells[y][x]
                 clr = charcolors[y][x]
                 fch = cells[y][x+1]  # following char
@@ -330,13 +343,14 @@ class Crossword:
                 else:
                     attr2 = colors['white on black']
 
+                if x >= 0:  # don't show left corners
+                    scr.addstr(scry, scrx, ch1, attr1)
+                scr.addstr(scry, scrx+1, ch2, attr2)
+                scrx += 2
+            scry += 1
 
-                if x >= 0:
-                    scr.addstr(grid_top+y, grid_left+x*2, ch1, attr1)
-                scr.addstr(grid_top+y, grid_left+x*2+1, ch2, attr2)
-
-        scr.addstr(grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
-        scr.addstr(grid_bottom,grid_left, opt.botch*(self.ncols*2-1), opt.botattr)
+        clipdraw(scr, grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
+        clipdraw(scr, scry,grid_left, opt.botch*(scrx-grid_left), opt.botattr)
 
         def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'
