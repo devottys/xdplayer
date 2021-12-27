@@ -50,7 +50,7 @@ opt = OptionsObject(
     pc11attr = ['100 on black'],
     pc12attr = ['56 on black'],
     pc13attr = ['27 on black'],
-
+    circledattr = ['red'],
     helpattr = ['bold 109', 'bold 108', ],
     clueattr = ['7'],
 
@@ -93,6 +93,7 @@ class Crossword:
         self.checkable = False
         self.acrosses = []
         self.downs = []
+        self.circled = []
 
         if fn.endswith('.puz'):
             self.fn = fn[:-4] + '.xd'
@@ -266,6 +267,9 @@ class Crossword:
     def charcolor(self, y, x, half=True):
         'Return the curses color key for the character at pos y, x (to be used in half() or opt[key + "attr"]).'
         ch = self.cell(y, x)
+        if (y, x) in self.circled:
+            return 'circled'
+
         if ch == '#':
             return 'block'
         dcurs = self.is_cursor(y, x, down=True)
@@ -455,6 +459,17 @@ class Crossword:
                 dirnum = f'{clue.dir}{clue.num}'
                 guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
                 fp.write(f'{dirnum}. {clue.clue} ~ {guess}\n')
+
+    def findCoords(self, dirnum, index=0):
+        'Return (y, x) grid coords for given *index* into answer at *dirnum*.'
+        coords = [(y, x)
+                for (y, x), clues in self.pos.items()
+                for clue in clues
+                if clue.dir == dirnum[0] and str(clue.num) == dirnum[1:]]
+        if dirnum[0] == 'A':
+            return sorted(coords)[index]
+        else:
+            return sorted(coords, key=lambda c: c[1])[index]
 
     def setAtCursor(self, ch):
         if self.grid[self.cursor_y][self.cursor_x] == ch:
@@ -650,6 +665,12 @@ class CrosswordPlayer:
             xd.cursorMove(+1)
         elif k == 'KEY_DC':  # erase in place
             xd.setAtCursor(UNFILLED)
+        elif k == '@':  # circle letter
+            coord = (xd.cursor_y, xd.cursor_x)
+            if coord in xd.circled:
+                xd.circled.remove(coord)
+            else:
+                xd.circled.append(coord)
         elif opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
         elif k.upper() in (string.ascii_uppercase+string.digits):

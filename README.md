@@ -21,6 +21,7 @@ There are some crosswords to play with in `samples/` and a collection of xds on 
 - Letter or number: fill in grid at cursor
 - Backspace, Space, Delete: erase backward, forward, in-place
 - TAB: change fill direction (across/down)
+- '@': toggle highlight of letter at the current position
 
 xdplayer *autosaves* your progress. It will create and restore from a **crosswordfilename-guesses.jsonl**
 in the current directory or in the location set by the `$TEAMDIR` shell environment variable.
