@@ -17,9 +17,10 @@ def getkeystroke(scr):
     return curses.keyname(k).decode('utf-8')
 
 class ColorMaker:
-    def __init__(self):
+    def __init__(self, scr):
         self.attrs = {}
         self.color_attrs = {}
+        self.scr = scr
 
 
     def get_color(self, fg, bg):
@@ -88,8 +89,8 @@ class OptionsObject(dict):
     def __getattr__(self, k):
         try:
             v = self[k][0]
-            if k.endswith('attr'):
-                v = colors[v]
+            if k.endswith('attr') and getattr(self, 'scr', None):
+                v = self.scr.colors[v]
             return v
         except KeyError as e:
             if k.startswith("__"):
@@ -102,6 +103,3 @@ class OptionsObject(dict):
 
     def cycle(self, k):
         self[k] = self[k][1:] + [self[k][0]]
-
-
-colors = ColorMaker()

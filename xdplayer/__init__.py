@@ -78,7 +78,7 @@ opt = OptionsObject(
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
 
 @functools.lru_cache
-def half(fg_coloropt, bg_coloropt):
+def half(colors, fg_coloropt, bg_coloropt):
     'Return curses color code for {fg_coloropt} colored character on a {bg_coloropt} colored background.'
     return colors['%s on %s' % (opt[fg_coloropt+'attr'][0], opt[bg_coloropt+'attr'][0])]
 
@@ -91,6 +91,8 @@ def log(*args):
 class Crossword:
     def __init__(self, fn):
         self.checkable = False
+        self.acrosses = []
+        self.downs = []
 
         if fn.endswith('.puz'):
             self.fn = fn[:-4] + '.xd'
@@ -130,7 +132,7 @@ class Crossword:
 
         self.solution = gridstr.splitlines()
 
-        self.grid = [[x for x in row] for row in self.solution]
+        self.grid = [[x for x in row] for row in self.solution] # grid is indexed as [y][x]
         self.nrows = len(self.grid)
         self.ncols = len(self.grid[0])
 
@@ -146,14 +148,17 @@ class Crossword:
                     answer = ''
                 dirnum, clue = clue.split('. ', maxsplit=1)
                 dir, num = dirnum[0], int(dirnum[1:])
+                if dir == 'A':
+                    self.acrosses.append(dirnum)
+                else:
+                    self.downs.append(dirnum)
                 self.clues[dirnum] = BoardClue(dir, num, clue, answer, [])  # final is board positions, filled in below
 
-
-        self.pos = defaultdict(list)  # (y,x) -> [(dir, num, answer), ...] associated words with that cell
+        self.pos = defaultdict(list)  # (x,y) -> [(dir, num, answer), ...] associated words with that cell
         for dir, num, answer, r, c in self.iteranswers_full():
             for i in range(len(answer)):
                 w = self.clues[f'{dir}{num}']
-                coord = (r,c+i) if dir == 'A' else (r+i,c)
+                coord = (c+i,r) if dir == 'A' else (c,r+i)
                 self.pos[coord].append(w)
                 w[-1].append(coord)
 
@@ -249,9 +254,9 @@ class Crossword:
 
     def is_cursor(self, y, x, down=False):
         'Is the cell located in the current down cursor (down=true) or across cursor (down=False)?'
-        w = self.pos[(y, x)]
+        w = self.pos[(x, y)]
         if not w: return False
-        cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
+        cursor_words = self.pos[(self.cursor_x, self.cursor_y)]
         if not cursor_words: return False
         return sorted(cursor_words)[down] == sorted(w)[down]
 
@@ -269,6 +274,9 @@ class Crossword:
     def draw(self, scr):
         if not scr:
             scr = mock.MagicMock(__bool__=mock.Mock(return_value=False))
+        # so that tests don't try to draw to the screen
+        if not scr.colors:
+            return
 
         h, w = scr.getmaxyx()
 
@@ -282,10 +290,9 @@ class Crossword:
             clipdraw(scr, y, 1, '%10s: %s' % (k, v), 0)
             y += 1
 
-
         # draw grid
         d = opt
-        cursor_words = self.pos[(self.cursor_y, self.cursor_x)]
+        cursor_words = self.pos[(self.cursor_x, self.cursor_y)]
         if cursor_words:
             cursor_across, cursor_down = sorted(cursor_words)
         else:
@@ -315,11 +322,10 @@ class Crossword:
 
                 ch1 = ch # printed character
                 ch2 = opt.leftblankch # printed second half
-
-                attr1 = colors[self.guessercolors.get(self.guesser[(x,y)].get('user', ''), 'white') + ' on black']
+                attr1 = scr.colors[self.guessercolors.get(self.guesser[(x,y)].get('user', ''), 'white') + ' on black']
 
                 if clr in "acr down curacr curdown".split():
-                    attr1 = colors[opt[clr+'attr'][0] + ' reverse']
+                    attr1 = scr.colors[opt[clr+'attr'][0] + ' reverse']
                 elif ch != '#':
                     attr1 = getattr(opt, self.guessercolors.get(self.guesser[(x,y)].get('user', ''), 'fgbg')+'attr')
                     if self.checkable and self.solution[y][x] != ch:
@@ -339,9 +345,9 @@ class Crossword:
                         attr1 = opt.arrowdownattr
 
                 if clr or fclr:
-                    attr2 = half(clr or 'bg', fclr or 'bg')  # colour of ch2
+                    attr2 = half(scr.colors, clr or 'bg', fclr or 'bg')  # colour of ch2
                 else:
-                    attr2 = colors['white on black']
+                    attr2 = scr.colors['white on black']
 
                 if x >= 0:  # don't show left corners
                     scr.addstr(scry, scrx, ch1, attr1)
@@ -369,7 +375,7 @@ class Crossword:
                     attr = opt.clueattr
 
                 dirnum = f'{clue.dir}{clue.num}'
-                guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
+                guess = ''.join([self.grid[c][r] for r, c in self.clues[dirnum][-1]])
                 self.clue_layout[dirnum] = y
                 dnw = len(dirnum)+2
                 maxw = max(min(w-clue_left-dnw-1, 40), 1)
@@ -474,11 +480,24 @@ class Crossword:
                     else:
                         self.guessercolors[user] = 'pc%d' % (len(self.guessercolors)+1)
 
-
             self.lastpos = fp.tell()
 
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
+
+    # Returns the coordinates of the first square of the current + kth across guess
+    def seekAcross(self, k):
+        curr_clue = sorted(self.pos[(self.cursor_x, self.cursor_y)])[0]
+        index = self.acrosses.index(f'{curr_clue.dir}{curr_clue.num}')
+        next_dirnum = self.acrosses[(index + k) % len(self.acrosses)]
+        return self.clues[next_dirnum].coords[0]
+
+    # Returns the coordinates of the first square of the current + kth down guess
+    def seekDown(self, k):
+        curr_clue = sorted(self.pos[(self.cursor_x, self.cursor_y)])[1]
+        index = self.downs.index(f'{curr_clue.dir}{curr_clue.num}')
+        next_dirnum = self.downs[(index + k) % len(self.downs)]
+        return self.clues[next_dirnum].coords[0]
 
 
 class CrosswordPlayer:
@@ -556,7 +575,7 @@ class CrosswordPlayer:
             else:
                 self.status(f'no cigar! {xd.ncells - correct} are wrong')
 
-        k = getkeystroke(scr)
+        k = scr.getkeystroke()
         scr.erase()
         if k == '^Q': return True
         if not k: return False
@@ -593,6 +612,18 @@ class CrosswordPlayer:
         elif k == 'KEY_UP': xd.cursorDown(-1); xd.undos.clear()
         elif k == 'KEY_LEFT': xd.cursorRight(-1); xd.undos.clear()
         elif k == 'KEY_RIGHT': xd.cursorRight(+1); xd.undos.clear()
+        elif k == 'KEY_SRIGHT':
+            if xd.filldir == 'A':
+                xd.cursor_x, xd.cursor_y = xd.seekAcross(1)
+            else:
+                xd.cursor_x, xd.cursor_y = xd.seekDown(1)
+            xd.undos.clear()
+        elif k == 'KEY_SLEFT':
+            if xd.filldir == 'A':
+                xd.cursor_x, xd.cursor_y = xd.seekAcross(-1)
+            else:
+                xd.cursor_x, xd.cursor_y = xd.seekDown(-1)
+            xd.undos.clear()
         elif k == '^I': xd.filldir = 'A' if xd.filldir == 'D' else 'D'
         #elif k == '^S': xd.mark_done(); self.status('puzzle submitted!')
         elif k == '^X':
@@ -624,12 +655,27 @@ class CrosswordPlayer:
             xd.cursorMove(+1)
 
 
-def main_player(scr, *args):
+def init_curses(scr):
     curses.use_default_colors()
     curses.raw()
     curses.meta(1)
     curses.curs_set(0)
     curses.mousemask(-1)
+
+
+class ScrWrapper:
+    def __init__(self, scr):
+        self.scr = scr
+    def __getattr__(self, k):
+        return getattr(self.scr, k)
+
+def main_player(scr, *args):
+    init_curses(scr)
+    scr = ScrWrapper(scr)
+    scr.colors = ColorMaker(scr.scr)
+    scr.getkeystroke = lambda x=scr: getkeystroke(scr)
+    opt.scr = scr
+
     plyr = CrosswordPlayer(args)
     while True:
         try:
