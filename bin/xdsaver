@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+'''
+Usage:
+    $0 <outfn> <crossword.xd>
+
+    Replays letters from <crossword.xd>-guesses.jsonl first and then saves to <outfn>.
+'''
+
+import sys
+
+from xdplayer import main_saver
+
+if __name__ == '__main__':
+    if not sys.argv[2:]:
+        print(__doc__)
+    else:
+        main_saver(*sys.argv[1:])

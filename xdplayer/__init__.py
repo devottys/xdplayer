@@ -443,11 +443,15 @@ class Crossword:
             fp.write('\n\n')
 
             for clue in self.acr_clues.values():
-                fp.write(f'{clue.dir}{clue.num}. {clue.clue}\n')
+                dirnum = f'{clue.dir}{clue.num}'
+                guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
+                fp.write(f'{dirnum}. {clue.clue} ~ {guess}\n')
             fp.write('\n')
 
             for clue in self.down_clues.values():
-                fp.write(f'{clue.dir}{clue.num}. {clue.clue}\n')
+                dirnum = f'{clue.dir}{clue.num}'
+                guess = ''.join([self.grid[r][c] for r, c in self.clues[dirnum][-1]])
+                fp.write(f'{dirnum}. {clue.clue} ~ {guess}\n')
 
     def setAtCursor(self, ch):
         if self.grid[self.cursor_y][self.cursor_x] == ch:
