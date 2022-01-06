@@ -588,11 +588,6 @@ class CrosswordPlayer:
         if k == '^N':
             self.next_crossword()
             scr.clear()
-        if k == '^V':
-            visidata.colors.setup()
-            visidata.vd.push(vdLauncher('xd_overview', source=Path(os.getenv('XDDB', 'xd.db'))))
-            visidata.vd.mainloop(scr)
-            colors.color_attrs.clear()
 
         if opt.hotkeys:
             clipdraw(scr, 0, w-20, k, 0)
