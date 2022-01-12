@@ -606,7 +606,7 @@ class CrosswordPlayer:
                     xd.cursor_x = x
                     xd.cursor_y = y
             elif y in xd.clue_layout:
-                xd.cursor_y, xd.cursor_x = xd.clue_layout[y][-1][0]
+                xd.cursor_x, xd.cursor_y = xd.clue_layout[y][-1][0]
             else:
                 self.status(f'{bstate}({y},{x})')
 
