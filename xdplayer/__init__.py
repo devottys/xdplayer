@@ -209,7 +209,10 @@ class Crossword:
         return len([c for r in self.grid for c in r if c not in '.#'])
 
     def mark_done(self):
-        os.chmod(self.guessfn, os.stat(self.guessfn).st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+        try:
+            os.chmod(self.guessfn, os.stat(self.guessfn).st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+        except PermissionError:
+            return
 
     def cell(self, r, c):
         if r < 0 or c < 0 or r >= self.nrows or c >= self.ncols:
