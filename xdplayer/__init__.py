@@ -21,6 +21,7 @@ from .ddwplay import AnimationMgr
 from .vdlauncher import vdLauncher
 import visidata
 from visidata import clipdraw
+from playsound import playsound
 
 UNFILLED = '.'
 
@@ -517,6 +518,9 @@ class CrosswordPlayer:
         self.startt = time.time()
         self.lastpos = 0
         self.animmgr = AnimationMgr()
+        self.beeped = False
+        self.celebrated = False
+        self.jingle = 'celebrate.mp3'
 
         #self.animmgr.load('bouncyball', open('bouncyball.ddw'))
         self.next_crossword()
@@ -575,12 +579,23 @@ class CrosswordPlayer:
         # if crossword is complete, check correct cell count
         if xd.nsolved == xd.ncells:
             correct = xd.grade()
-
             if correct == xd.ncells:
                 xd.mark_done()
+                if not self.celebrated:
+                    try:
+                        playsound(self.jingle, block=False)
+                    except:
+                        pass
+                    self.celebrated = True
                 self.status('puzzle complete! nicely done')
             else:
-                self.status(f'no cigar! {xd.ncells - correct} are wrong')
+                if not self.beeped:
+                    curses.beep()
+                    self.beeped = True
+                self.status(f'puzzle filled but no cigar! {xd.ncells - correct} are wrong')
+        else:
+            self.beeped = False
+            self.celebrated = False
 
         k = scr.getkeystroke()
         scr.erase()
