@@ -13,6 +13,7 @@ import time
 import string
 import curses
 from pathlib import Path
+from pkg_resources import resource_filename
 from collections import namedtuple, defaultdict
 
 from .tui import *
@@ -21,7 +22,11 @@ from .ddwplay import AnimationMgr
 from .vdlauncher import vdLauncher
 import visidata
 from visidata import clipdraw
-from playsound import playsound
+try:
+    from playsound import playsound
+    playsound_installed = True
+except ImportError:
+    playsound_installed = False
 
 UNFILLED = '.'
 
@@ -520,7 +525,7 @@ class CrosswordPlayer:
         self.animmgr = AnimationMgr()
         self.beeped = False
         self.celebrated = False
-        self.jingle = 'celebrate.mp3'
+        self.jingle = resource_filename(__name__, 'tones/celebrate.mp3')
 
         #self.animmgr.load('bouncyball', open('bouncyball.ddw'))
         self.next_crossword()
@@ -582,10 +587,8 @@ class CrosswordPlayer:
             if correct == xd.ncells:
                 xd.mark_done()
                 if not self.celebrated:
-                    try:
+                    if playsound_installed:
                         playsound(self.jingle, block=False)
-                    except:
-                        pass
                     self.celebrated = True
                 self.status('puzzle complete! nicely done')
             else:
