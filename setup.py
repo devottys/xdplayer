@@ -12,5 +12,8 @@ setup(name='xdplayer',
       py_modules=['xdplayer'],
       package_data={'xdplayer': ['tones/celebrate.mp3']},
       include_package_data=True,
+      extras_require = {
+          'celebrate': ['playsound'],
+        },
       packages=['xdplayer']
     )

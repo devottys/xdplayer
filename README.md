@@ -29,6 +29,26 @@ in the current directory or in the location set by the `$TEAMDIR` shell environm
 - Ctrl+X: enable hotkeys to cycle through display configurable options. These options are all set at the top of `xdplayer/__init__.py`, should you wish to modify them.
 - Ctrl+Q: quit program.
 
+## Installation Guide
+
+### How to set-up basic xdplayer (TODO)
+
+### Celebrate!
+
+To optionally celebrate every time you have successfully completed a puzzle, install the "celebrate" [extras](https://packaging.python.org/en/latest/tutorials/installing-packages/#installing-setuptools-extras).
+
+```
+pip3 install .[celebrate]
+```
+
+Or seperately install the PyPi package [playsound](https://pypi.org/project/playsound/) in the current Python environment.
+
+```
+pip3 install playsound
+```
+
+
+
 ## Similar Projects
 
 - [puzterm](https://github.com/rparrett/puzterm) (2018, Rust)
