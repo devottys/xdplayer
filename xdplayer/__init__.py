@@ -362,7 +362,7 @@ class Crossword:
                 scrx += 2
             scry += 1
 
-        clipdraw(scr, grid_top-1, grid_left, opt.topch*(self.ncols*2-1), opt.topattr)
+        clipdraw(scr, grid_top-1, grid_left, opt.topch*(self.ncols*2+1), opt.topattr)
         clipdraw(scr, scry,grid_left, opt.botch*(scrx-grid_left), opt.botattr)
 
         def draw_clues(clue_top, clues, cursor_clue, n):
