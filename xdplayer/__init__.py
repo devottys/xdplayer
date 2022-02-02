@@ -177,6 +177,12 @@ class Crossword:
     def clear(self):
         self.grid = [['#' if x == '#' else UNFILLED for x in row] for row in self.solution]
 
+    def solve(self):
+        for y, row in enumerate(self.grid):
+            for x, ch in enumerate(row):
+                if ch == UNFILLED:
+                    self.setAt(x, y, self.solution[y][x], user='solver')
+
     def grade(self):
         'Return the number of correct tiles'
         xd1 = Crossword(self.fn)
@@ -471,17 +477,23 @@ class Crossword:
         else:
             return sorted(coords, key=lambda c: c[1])[index]
 
-    def setAtCursor(self, ch):
-        if self.grid[self.cursor_y][self.cursor_x] == ch:
+    def setAtCursor(self, ch, user=None):
+        self.setAt(self.cursor_x, self.cursor_y, ch, user=user)
+
+    def setAt(self, cursor_x, cursor_y, ch, user=None):
+        if self.grid[cursor_y][cursor_x] == ch:
             return
 
-        with open(self.guessfn, 'a') as fp:
-            fp.write(json.dumps(dict(xdid=self.xdid, x=self.cursor_x, y=self.cursor_y, ch=ch, user=os.getenv('USER', getpass.getuser()))) + '\n')
+        if not user:
+            user = os.getenv('USER', getpass.getuser())
 
-        self.grid[self.cursor_y][self.cursor_x] = ch
-        prevrow = self.guesser[(self.cursor_x,self.cursor_y)]
+        with open(self.guessfn, 'a') as fp:
+            fp.write(json.dumps(dict(xdid=self.xdid, x=cursor_x, y=cursor_y, ch=ch, user=user)) + '\n')
+
+        self.grid[cursor_y][cursor_x] = ch
+        prevrow = self.guesser[(cursor_x,cursor_y)]
         if not prevrow:
-            prevrow = dict(xdid=self.xdid, x=self.cursor_x, y=self.cursor_y, ch=UNFILLED)
+            prevrow = dict(xdid=self.xdid, x=cursor_x, y=cursor_y, ch=UNFILLED)
         self.undos.append(prevrow)
 
     def replay_guesses(self):
@@ -665,6 +677,8 @@ class CrosswordPlayer:
             xd.cursorMove(+1)
         elif k == 'KEY_DC':  # erase in place
             xd.setAtCursor(UNFILLED)
+        elif k == 'KEY_F(2)':  # solve puzzle
+            xd.solve()
         elif k == '@':  # circle letter
             coord = (xd.cursor_y, xd.cursor_x)
             if coord in xd.circled:
