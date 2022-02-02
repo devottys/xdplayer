@@ -545,7 +545,6 @@ class CrosswordPlayer:
         self.lastpos = 0
         self.animmgr = AnimationMgr()
 
-        #self.animmgr.load('bouncyball', open('bouncyball.ddw'))
         self.next_crossword()
 
 
@@ -605,6 +604,7 @@ class CrosswordPlayer:
 
             if correct == xd.ncells:
                 xd.mark_done()
+                self.animmgr.load('completed', open('completed.ddw'))
                 self.status('puzzle complete! nicely done')
             else:
                 self.status(f'no cigar! {xd.ncells - correct} are wrong')
