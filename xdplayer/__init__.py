@@ -561,12 +561,13 @@ class CrosswordPlayer:
     def play_one(self, scr, xd):
         h, w = scr.getmaxyx()
         try:
+            scr.erase()
             xd.draw(scr)
         except Exception:
             scr.clear()
             self.next_crossword()
         if self.statuses:
-            clipdraw(scr, h-2, clue_left, self.statuses.pop(), 0)
+            clipdraw(scr, h-2, clue_left, self.statuses[-1], 0)
         solvedamt = '%d/%d' % (xd.nsolved, xd.ncells)
 
         # draw time on bottom
@@ -610,7 +611,6 @@ class CrosswordPlayer:
                 self.status(f'no cigar! {xd.ncells - correct} are wrong')
 
         k = scr.getkeystroke()
-        scr.erase()
         if k == '^Q': return True
         if not k: return False
         if k == 'KEY_RESIZE': h, w = scr.getmaxyx()
