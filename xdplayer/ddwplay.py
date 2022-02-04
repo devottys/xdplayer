@@ -47,9 +47,10 @@ class Animation:
         if self.frames:
             self.total_ms = sum(f.duration_ms or 0 for f in self.frames.values())
 
-
     def draw(self, scr, t, *args, x=0, y=0, loop=False, **kwargs):
-        ms = int(t*1000) % self.total_ms
+        ms = int(t*1000)
+        if loop:
+            ms %= self.total_ms
         for f in self.frames.values():
             ms -= int(f.duration_ms or 0)
             if ms < 0:

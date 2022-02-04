@@ -596,7 +596,6 @@ class CrosswordPlayer:
         nextt = self.animmgr.draw(scr, now)
         timeout = int((nextt-now)*1000)
         if timeout < 0:
-            self.status(f'{timeout}')
             scr.timeout(1)
         else:
             scr.timeout(timeout)
