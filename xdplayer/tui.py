@@ -1,8 +1,6 @@
 import functools
 import curses
 
-colors = None
-
 def getkeystroke(scr):
     k = None
     while k is None:
