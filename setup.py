@@ -10,4 +10,6 @@ setup(name='xdplayer',
       python_requires='>=3.6',
       scripts=['bin/xdplayer'],
       py_modules=['xdplayer'],
+      package_data={'xdplayer': ['ddw/completed.ddw']},
+      include_package_data=True,
       packages=['xdplayer'])

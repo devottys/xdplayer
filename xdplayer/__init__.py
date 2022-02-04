@@ -13,6 +13,7 @@ import time
 import string
 import curses
 from pathlib import Path
+from pkg_resources import resource_filename
 from collections import namedtuple, defaultdict
 
 from .tui import *
@@ -544,7 +545,8 @@ class CrosswordPlayer:
         self.startt = time.time()
         self.lastpos = 0
         self.animmgr = AnimationMgr()
-
+        self.animmgr.load('completed', open(resource_filename(__name__, 'ddw/completed.ddw')))
+        self.completed = False
         self.next_crossword()
 
 
@@ -604,9 +606,11 @@ class CrosswordPlayer:
             correct = xd.grade()
 
             if correct == xd.ncells:
-                xd.mark_done()
-                self.animmgr.load('completed', open('completed.ddw'))
-                self.status('puzzle complete! nicely done')
+                if not self.completed:
+                    xd.mark_done()
+                    self.animmgr.trigger('completed', loop=True, x=1, y=h-3)
+                    self.status('puzzle complete! nicely done')
+                    self.completed = True
             else:
                 self.status(f'no cigar! {xd.ncells - correct} are wrong')
 

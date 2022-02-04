@@ -1,7 +1,6 @@
 from collections import defaultdict
 import json
 import time
-from .tui import colors
 
 
 class AttrDict(dict):
@@ -55,7 +54,7 @@ class Animation:
             ms -= int(f.duration_ms or 0)
             if ms < 0:
                 for r, dx, dy, _ in self.iterdeep(f.rows):
-                    scr.addstr(y+dy, x+dx, r.text, colors[r.color])
+                    scr.addstr(y+dy, x+dx, r.text, scr.colors[r.color])
 
                 return -ms/1000
 
