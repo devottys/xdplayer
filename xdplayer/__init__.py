@@ -77,6 +77,7 @@ opt = OptionsObject(
 )
 
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
+Cross = namedtuple('Cross', 'across down')
 
 @functools.lru_cache
 def half(colors, fg_coloropt, bg_coloropt):
@@ -156,13 +157,17 @@ class Crossword:
                     self.downs.append(dirnum)
                 self.clues[dirnum] = BoardClue(dir, num, clue, answer, [])  # final is board positions, filled in below
 
-        self.pos = defaultdict(list)  # (x,y) -> [(dir, num, answer), ...] associated words with that cell
-        for dir, num, answer, r, c in self.iteranswers_full():
+        self.cross = defaultdict(lambda: Cross(None, None))
+        for dir, num, answer, r, c, in self.iteranswers_full():
+            clue = self.clues[f'{dir}{num}']
             for i in range(len(answer)):
-                w = self.clues[f'{dir}{num}']
-                coord = (c+i,r) if dir == 'A' else (c,r+i)
-                self.pos[coord].append(w)
-                w[-1].append(coord)
+                coord = (c+i, r) if dir == 'A' else (c, r+i)
+                clue.coords.append(coord)
+            for c in clue.coords:
+                if dir == 'A' and not self.cross[c].across:
+                    self.cross[c] = self.cross[c]._replace(across=clue)
+                elif not self.cross[c].down:
+                    self.cross[c] = self.cross[c]._replace(down=clue)
 
     def move_grid(self, x, y, w, h):
         global grid_bottom, grid_right, grid_top, grid_left
@@ -265,11 +270,14 @@ class Crossword:
 
     def is_cursor(self, y, x, down=False):
         'Is the cell located in the current down cursor (down=true) or across cursor (down=False)?'
-        w = self.pos[(x, y)]
-        if not w: return False
-        cursor_words = self.pos[(self.cursor_x, self.cursor_y)]
-        if not cursor_words: return False
-        return sorted(cursor_words)[down] == sorted(w)[down]
+        if (x, y) == (self.cursor_x, self.cursor_y):
+            return True
+        dir = 'down' if down else 'across'
+        cell_words = self.cross[(x, y)]
+        if not getattr(cell_words, dir): return False
+        cursor_words = self.cross[(self.cursor_x, self.cursor_y)]
+        if not getattr(cursor_words, dir): return False
+        return getattr(cursor_words, dir) == getattr(cell_words, dir)
 
     def charcolor(self, y, x, half=True):
         'Return the curses color key for the character at pos y, x (to be used in half() or opt[key + "attr"]).'
@@ -306,11 +314,7 @@ class Crossword:
 
         # draw grid
         d = opt
-        cursor_words = self.pos[(self.cursor_x, self.cursor_y)]
-        if cursor_words:
-            cursor_across, cursor_down = sorted(cursor_words)
-        else:
-            cursor_across, cursor_down = None, None
+        cursor_across, cursor_down = self.cross[(self.cursor_x, self.cursor_y)]
 
         charcolors = {y:{x:self.charcolor(y, x) for x in range(-1, self.ncols+2)} for y in range(-1, self.nrows+2)}
         cells = {y:{x:self.cell(y, x) for x in range(-1, self.ncols+2)} for y in range(-1, self.nrows+2)}
@@ -375,7 +379,7 @@ class Crossword:
         def draw_clues(clue_top, clues, cursor_clue, n):
             'Draw clues around cursor in one direction.'
             dirnums = list(clues.values())
-            i = dirnums.index(cursor_clue)
+            i = dirnums.index(cursor_clue) if cursor_clue else 0
             y=0
             for clue in dirnums[max(i-2,0):]:
                 if y >= n:
@@ -522,14 +526,16 @@ class Crossword:
 
     # Returns the coordinates of the first square of the current + kth across guess
     def seekAcross(self, k):
-        curr_clue = sorted(self.pos[(self.cursor_x, self.cursor_y)])[0]
+        curr_clue = self.cross[(self.cursor_x, self.cursor_y)].across
+        if not curr_clue: return (self.cursor_x, self.cursor_y)
         index = self.acrosses.index(f'{curr_clue.dir}{curr_clue.num}')
         next_dirnum = self.acrosses[(index + k) % len(self.acrosses)]
         return self.clues[next_dirnum].coords[0]
 
     # Returns the coordinates of the first square of the current + kth down guess
     def seekDown(self, k):
-        curr_clue = sorted(self.pos[(self.cursor_x, self.cursor_y)])[1]
+        curr_clue = self.cross[(self.cursor_x, self.cursor_y)].down
+        if not curr_clue: return (self.cursor_x, self.cursor_y)
         index = self.downs.index(f'{curr_clue.dir}{curr_clue.num}')
         next_dirnum = self.downs[(index + k) % len(self.downs)]
         return self.clues[next_dirnum].coords[0]
