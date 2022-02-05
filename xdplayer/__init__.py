@@ -67,7 +67,6 @@ opt = OptionsObject(
 #    vline = '│┃|┆┇┊┋',
 #    inside_vline = ' │|┆┃┆┇┊┋',
     leftattr = ['', 'reverse'],
-    noteattr = ['black on blue'],
     unsolved_char = '· .?□_▁-˙∙•╺‧',
     rightarrow = '⇨→↪⇢',
     downarrow = '⇩↓⇓⇣⬇',
@@ -426,16 +425,25 @@ class Crossword:
             s = '%s (%d%%)' % (user, sum(1 for (x,y), r in self.guesser.items() if r.get('user', '') == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
             clipdraw(scr, grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
 
+    def get_user_attr(self, username):
+        return getattr(opt, self.guessercolors.get(username, 'fg')+'attr')
+
     def draw_notes(self, scr):
         h, w = scr.getmaxyx()
         maxw = max(min(w-clue_left-1, 40), 1)
         notes = self.notes.get(self.curr_dirnum, None)
         if not notes: return
-        curr_y = grid_bottom+1
+        curr_y = grid_bottom+2
+
         for note in notes:
-            for j, line in enumerate(textwrap.wrap(note['note'], width=maxw)):
-                line = line + ' '*(maxw-len(line))
-                clipdraw(scr, curr_y, grid_right+3, line, opt.noteattr)
+            localtime = time.strftime("%b %d  %H:%M", time.localtime(note.get("time", time.time())))
+            username = f' {localtime} {note["user"]}  '
+            attr = self.get_user_attr(note["user"])
+            clipdraw(scr, curr_y, grid_right-len(username)+3, username, attr)
+            lines = textwrap.wrap(note['note'], width=maxw)
+            for j, line in enumerate(lines):
+                line = ' ' + line + ' '*(maxw-len(line)+1)
+                clipdraw(scr, curr_y, grid_right+3, line, attr)
                 curr_y += 1
 
     def draw_hotkeys(self, scr):
@@ -667,8 +675,9 @@ class CrosswordPlayer:
             scr.clear()
         if k == '^Y':
             try:
-                note = visidata.vd.editline(scr, h-2, 0, w-1)
-                self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note)
+                clipdraw(scr, h-2, 1, 'note:', opt.fgattr)
+                note = visidata.vd.editline(scr, h-2, 7, w-1)
+                self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note, time=time.time())
             except Exception as e:
                 self.status(str(e))
             except EscapeException:
