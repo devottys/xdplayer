@@ -607,6 +607,7 @@ class CrosswordPlayer:
         self.crossword_paths.append(self.xd)
         self.xd.clear()
         self.xd.lastpos = 0
+        self.xd.notes = defaultdict(list)
         self.xd.replay_guesses()
 
     def status(self, s):
