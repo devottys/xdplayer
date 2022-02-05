@@ -450,7 +450,7 @@ class Crossword:
         self.hotkeys = {}
         h, w = scr.getmaxyx()
         for i, (k, v) in enumerate(opt.items()):
-            key = "0123456789abcdefghijklmnopqrstuvwxyzABCDEF"[i]
+            key = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN"[i]
             self.hotkeys[key] = k
 
             y = grid_top+self.nrows+i+1
