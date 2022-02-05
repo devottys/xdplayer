@@ -67,6 +67,7 @@ opt = OptionsObject(
 #    vline = '│┃|┆┇┊┋',
 #    inside_vline = ' │|┆┃┆┇┊┋',
     leftattr = ['', 'reverse'],
+    noteattr = ['black on blue'],
     unsolved_char = '· .?□_▁-˙∙•╺‧',
     rightarrow = '⇨→↪⇢',
     downarrow = '⇩↓⇓⇣⬇',
@@ -111,6 +112,7 @@ class Crossword:
 
         self.undos = []  # list of guess rows that have been written since last move
         self.clue_layout = {}
+        self.notes = defaultdict(list)
 
         self.move_grid(3, len(self.meta), 80, 25)
 
@@ -292,6 +294,16 @@ class Crossword:
         if acurs: return 'acr' # cell is across cursor, but not intersect
         if dcurs: return 'down' # cell is down cursor, but not intersect
 
+    @property
+    def curr_dirnum(self):
+        cursor_across, cursor_down = self.cross[(self.cursor_x, self.cursor_y)]
+        if self.filldir == 'A':
+            if not cursor_across: return ''
+            return f'A{cursor_across.num}'
+        else:
+            if not cursor_down: return ''
+            return f'D{cursor_down.num}'
+
     def draw(self, scr):
         if not scr:
             scr = mock.MagicMock(__bool__=mock.Mock(return_value=False))
@@ -407,10 +419,24 @@ class Crossword:
         draw_clues(clue_top, self.acr_clues, cursor_across, clueh)
         draw_clues(clue_top+clueh+2, self.down_clues, cursor_down, clueh)
 
+        self.draw_notes(scr)
+
         # draw solver list
         for i, (user, color) in enumerate(self.guessercolors.items()):
             s = '%s (%d%%)' % (user, sum(1 for (x,y), r in self.guesser.items() if r.get('user', '') == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
             clipdraw(scr, grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
+
+    def draw_notes(self, scr):
+        h, w = scr.getmaxyx()
+        maxw = max(min(w-clue_left-1, 40), 1)
+        notes = self.notes.get(self.curr_dirnum, None)
+        if not notes: return
+        curr_y = grid_bottom+1
+        for note in notes:
+            for j, line in enumerate(textwrap.wrap(note['note'], width=maxw)):
+                line = line + ' '*(maxw-len(line))
+                clipdraw(scr, curr_y, grid_right+3, line, opt.noteattr)
+                curr_y += 1
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
@@ -488,17 +514,22 @@ class Crossword:
         if self.grid[cursor_y][cursor_x] == ch:
             return
 
-        if not user:
-            user = os.getenv('USER', getpass.getuser())
-
-        with open(self.guessfn, 'a') as fp:
-            fp.write(json.dumps(dict(xdid=self.xdid, x=cursor_x, y=cursor_y, ch=ch, user=user)) + '\n')
-
+        self.writeEntry(x=cursor_x, y=cursor_y, ch=ch, user=user)
         self.grid[cursor_y][cursor_x] = ch
         prevrow = self.guesser[(cursor_x,cursor_y)]
         if not prevrow:
             prevrow = dict(xdid=self.xdid, x=cursor_x, y=cursor_y, ch=UNFILLED)
         self.undos.append(prevrow)
+
+    def writeEntry(self, **data):
+        if not data.get('user', None):
+            data['user'] = os.getenv('USER', getpass.getuser())
+
+        if not data.get('xdid', None):
+            data['xdid'] = self.xdid
+
+        with open(self.guessfn, 'a') as fp:
+            fp.write(json.dumps(data) + '\n')
 
     def replay_guesses(self):
         if not os.path.exists(self.guessfn):
@@ -508,20 +539,28 @@ class Crossword:
             fp.seek(self.lastpos)
             for line in fp.read().splitlines():
                 d = json.loads(line)
-                x, y, ch = d['x'], d['y'], d['ch']
-                self.grid[y][x] = ch
-                user = d.get('user', '')
-                self.guesser[(x,y)] = d
-                if user and user not in self.guessercolors:
-                    if len(self.guessercolors) >= 13:
-                        self.guessercolors[user] = 'pcw'
-                    else:
-                        self.guessercolors[user] = 'pc%d' % (len(self.guessercolors)+1)
-
+                if 'note' in d:
+                    self.replay_note(d)
+                    continue
+                self.replay_guess(d)
             self.lastpos = fp.tell()
 
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
+
+    def replay_guess(self, d):
+        x, y, ch = d['x'], d['y'], d['ch']
+        self.grid[y][x] = ch
+        user = d.get('user', '')
+        self.guesser[(x,y)] = d
+        if user and user not in self.guessercolors:
+            if len(self.guessercolors) >= 13:
+                self.guessercolors[user] = 'pcw'
+            else:
+                self.guessercolors[user] = 'pc%d' % (len(self.guessercolors)+1)
+
+    def replay_note(self, d):
+        self.notes[d['dirnum']].append(d)
 
     # Returns the coordinates of the first square of the current + kth across guess
     def seekAcross(self, k):
@@ -626,6 +665,14 @@ class CrosswordPlayer:
         if k == '^N':
             self.next_crossword()
             scr.clear()
+        if k == '^Y':
+            try:
+                note = visidata.vd.editline(scr, h-2, 0, w-1)
+                self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note)
+            except Exception as e:
+                self.status(str(e))
+            except EscapeException:
+                pass
 
         if opt.hotkeys:
             clipdraw(scr, 0, w-20, k, 0)
