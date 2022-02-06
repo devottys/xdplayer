@@ -407,6 +407,14 @@ class Crossword:
                 self.clue_layout[dirnum] = y
                 dnw = len(dirnum)+2
                 maxw = max(min(w-clue_left-dnw-1, 40), 1)
+
+                # add a user coloured "*", for the most recent user
+                # who left a note
+                note = self.notes.get(dirnum, None)
+                if note:
+                    note_attr = self.get_user_attr(note[-1]['user'])
+                    clipdraw(scr, clue_top+y, w-4, "*", note_attr)
+
                 for j, line in enumerate(textwrap.wrap(clue.clue + f' [{guess}]', width=maxw)):
                     prefix = f'{dirnum}. ' if j == 0 else ' '*dnw
                     line = prefix + line + ' '*(maxw-len(line))
