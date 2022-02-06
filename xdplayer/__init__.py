@@ -20,7 +20,7 @@ from .tui import *
 from .puz2xd import gen_xd
 from .ddwplay import AnimationMgr
 import visidata
-from visidata import clipdraw
+from visidata import clipdraw, EscapeException
 
 UNFILLED = '.'
 
