@@ -409,14 +409,15 @@ class Crossword:
                 note = self.notes.get(dirnum, None)
                 if note:
                     note_attr = self.get_user_attr(note[-1]['user'])
-                    clipdraw(scr, clue_top+y, w-4, "*", note_attr)
+                    clipdraw(scr, clue_top+y, clue_left, "*", note_attr)
 
                 for j, line in enumerate(textwrap.wrap(clue.clue + f' [{guess}]', width=maxw)):
                     prefix = f'{dirnum}. ' if j == 0 else ' '*dnw
                     line = prefix + line + ' '*(maxw-len(line))
                     self.clue_layout[clue_top+y] = clue
-                    clipdraw(scr, clue_top+y, clue_left, line, attr)
+                    clipdraw(scr, clue_top+y, clue_left+1, line, attr)
                     y += 1
+
 
         clueh = self.nrows//2-1
         draw_clues(clue_top, self.acr_clues, cursor_across, clueh)
