@@ -117,10 +117,6 @@ class Crossword:
 
     def load(self):
         self.load_xd(open(self.fn, encoding='utf-8').read())
-        try:
-            self.checkable = not (os.stat(self.guessfn).st_mode & stat.S_IWUSR)
-        except FileNotFoundError:
-            self.checkable = False
 
     def load_puz(self, fn):
         self.load_xd('\n'.join(gen_xd(fn)))
@@ -672,7 +668,10 @@ class CrosswordPlayer:
                     self.status('puzzle complete! nicely done')
                     self.completed = True
             else:
+                self.xd.checkable=True
                 self.status(f'no cigar! {xd.ncells - correct} are wrong')
+        else:
+            self.xd.checkable=False
 
         k = scr.getkeystroke()
         if k == '^Q': return True
