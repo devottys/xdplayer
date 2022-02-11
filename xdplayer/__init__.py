@@ -386,10 +386,10 @@ class Crossword:
             'Draw clues around cursor in one direction.'
             dirnums = list(clues.values())
             i = dirnums.index(cursor_clue) if cursor_clue else 0
-            y=0
-            for clue in dirnums[max(i-2,0):]:
-                if y >= n:
-                    break
+            y = 0  # number of clue lines drawn
+            for j, clue in enumerate(dirnums[max(i-2,0):]):
+                if y >= n and j > 2:
+                    return y
                 if cursor_clue == clue:
                     attr = (opt.acrattr if clue.dir == 'A' else opt.downattr) | curses.A_REVERSE
                     if self.filldir == clue.dir:
