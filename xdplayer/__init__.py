@@ -683,14 +683,18 @@ class CrosswordPlayer:
             self.next_crossword()
             scr.clear()
         if k == '^Y':
-            try:
-                clipdraw(scr, h-2, 1, 'note:', opt.fgattr)
-                note = visidata.vd.editline(scr, h-2, 7, w-1)
-                self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note, time=time.time())
-            except Exception as e:
-                self.status(str(e))
-            except EscapeException:
-                pass
+            if self.xd.curr_dirnum:
+                try:
+                    clipdraw(scr, h-2, 1, 'note:', opt.fgattr)
+                    note = visidata.vd.editline(scr, h-2, 7, w-1)
+                    self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note, time=time.time())
+                except Exception as e:
+                    self.status(str(e))
+                except EscapeException:
+                    pass
+            else:
+                while not scr.getkeystroke():
+                    clipdraw(scr, h-2, 1, 'couldn\'t find a clue here! try changing direction', opt.fgattr)
 
         if opt.hotkeys:
             clipdraw(scr, 0, w-20, k, 0)
