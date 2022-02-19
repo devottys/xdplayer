@@ -681,6 +681,7 @@ class CrosswordPlayer:
         if k == '^L': scr.clear()
         if k == '^N':
             self.next_crossword()
+            self.statuses=[]
             scr.clear()
         if k == '^Y':
             if self.xd.curr_dirnum:
