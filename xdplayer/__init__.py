@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from unittest import mock
+import copy
 import functools
 import sys
 import json
@@ -50,6 +51,7 @@ opt = OptionsObject(
     pc11attr = ['100 on black'],
     pc12attr = ['56 on black'],
     pc13attr = ['27 on black'],
+    rebuschars = ['123456789'],
     circledattr = ['red'],
     helpattr = ['bold 109', 'bold 108', ],
     clueattr = ['7'],
@@ -95,6 +97,7 @@ class Crossword:
         self.acrosses = []
         self.downs = []
         self.circled = []
+        self.rebus = {} # word represented : (display symbol, set((y1, x1), (y2, x2), ... , (yn, xn)))
 
         if fn.endswith('.puz'):
             self.fn = fn[:-4] + '.xd'
@@ -129,9 +132,14 @@ class Crossword:
             k, v = line.split(':', maxsplit=1)
             self.meta[k.strip()] = v.strip()
 
-        self.solution = gridstr.splitlines()
+        rebus_soln = dict(r.split('=') for r in self.meta.get('Rebus', '').split(','))
 
-        self.grid = [[x for x in row] for row in self.solution] # grid is indexed as [y][x]
+        self.solution = [
+            list(rebus_soln.get(ch, ch) for ch in line)
+                for line in gridstr.splitlines()
+        ]
+
+        self.clear()
         self.nrows = len(self.grid)
         self.ncols = len(self.grid[0])
 
@@ -187,11 +195,7 @@ class Crossword:
 
     def grade(self):
         'Return the number of correct tiles'
-        xd1 = Crossword(self.fn)
-        xd2 = Crossword(self.fn)
-        xd2.clear()
-        xd2.replay_guesses()
-        return sum(1 for y, r in enumerate(xd2.grid) for x, c in enumerate(r) if c != '#' and c.upper() == xd1.grid[y][x].upper())
+        return sum(1 for y, r in enumerate(self.grid) for x, c in enumerate(r) if c != '#' and c.upper() == self.solution[y][x].upper())
 
     @property
     def guessfn(self):
@@ -308,11 +312,17 @@ class Crossword:
 
         h, w = scr.getmaxyx()
 
-        self.move_grid(3, max(0, min(h-self.nrows-2, len(self.meta))), w, h)
+        meta = copy.copy(self.meta)
+        if 'Rebus' in meta:
+            del meta['Rebus']
+        if self.rebus:
+            meta['Rebus'] = ' '.join(sorted(f'{symbol}={word}' for word, (symbol, _) in self.rebus.items()))
+
+        self.move_grid(3, max(0, min(h-self.nrows-2, len(meta)+1)), w, h)
 
         # draw meta
         y = 0
-        for k, v in self.meta.items():
+        for k, v in meta.items():
             if y >= grid_top-1:
                 break
             clipdraw(scr, y, 1, '%10s: %s' % (k, v), 0)
@@ -344,7 +354,7 @@ class Crossword:
                 fch = cells[y][x+1]  # following char
                 fclr = charcolors[y][x+1] or 'bg' # following color
 
-                ch1 = ch # printed character
+                ch1 = ch if len(ch) == 1 else self.rebus[ch][0] # printed character
                 ch2 = opt.leftblankch # printed second half
                 attr1 = scr.colors[self.guessercolors.get(self.guesser[(x,y)].get('user', ''), 'white') + ' on black']
 
@@ -524,6 +534,7 @@ class Crossword:
         self.setAt(self.cursor_x, self.cursor_y, ch, user=user)
 
     def setAt(self, cursor_x, cursor_y, ch, user=None):
+        self.update_rebus(ch, cursor_x, cursor_y)
         if self.grid[cursor_y][cursor_x] == ch:
             return
 
@@ -561,9 +572,37 @@ class Crossword:
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
 
+    def update_rebus(self, r, x, y):
+        'r (rebus string), x, y (positions in grid)'
+
+        r = r.upper()
+
+        # check self.grid[y][x] already has a rebus, remove it from self.rebus
+        oldch = self.grid[y][x].upper()
+        if oldch in self.rebus:
+            self.rebus[oldch][1].remove((x, y))
+            # if position set is empty, remove rebus index
+            if not self.rebus[oldch][1]:
+                del self.rebus[oldch]
+
+        if len(r) == 1:
+            return
+
+        if r not in self.rebus:
+            # find new rebus char
+            usedchars = set(x[0] for x in self.rebus.values())
+            newchar = sorted(list(set(opt.rebuschars) - usedchars))[0]
+            self.rebus[r] = (newchar, set())
+        self.rebus[r][1].add((x, y))
+
+
     def replay_guess(self, d):
         x, y, ch = d['x'], d['y'], d['ch']
+
+        self.update_rebus(ch, x, y)
+
         self.grid[y][x] = ch
+
         user = d.get('user', '')
         self.guesser[(x,y)] = d
         if user and user not in self.guessercolors:
@@ -683,6 +722,11 @@ class CrosswordPlayer:
             self.next_crossword()
             self.statuses=[]
             scr.clear()
+        if k == '^R':
+            clipdraw(scr, h-2, 1, 'rebus:', opt.fgattr)
+            r = visidata.vd.editline(scr, h-2, 8, w-1)
+            xd.setAtCursor(r.upper())
+
         if k == '^Y':
             if self.xd.curr_dirnum:
                 try:
