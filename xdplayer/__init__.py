@@ -132,7 +132,7 @@ class Crossword:
             k, v = line.split(':', maxsplit=1)
             self.meta[k.strip()] = v.strip()
 
-        rebus_soln = dict(r.split('=') for r in self.meta.get('Rebus', '').split(','))
+        rebus_soln = dict(r.split('=') for r in self.meta['Rebus'].split(',')) if 'Rebus' in self.meta else {}
 
         self.solution = [
             list(rebus_soln.get(ch, ch) for ch in line)
