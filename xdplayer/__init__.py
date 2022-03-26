@@ -115,6 +115,7 @@ class Crossword:
         self.undos = []  # list of guess rows that have been written since last move
         self.clue_layout = {}
         self.notes = defaultdict(list)
+        self.starting_note = 0
 
         self.move_grid(3, len(self.meta), 80, 25)
 
@@ -310,6 +311,9 @@ class Crossword:
         if not scr.colors:
             return
 
+        scr.erase()
+        scr.bkgd(' ', opt.fgbgattr)
+
         h, w = scr.getmaxyx()
 
         meta = copy.copy(self.meta)
@@ -434,8 +438,9 @@ class Crossword:
         draw_clues(clue_top+clueh+2, self.down_clues, cursor_down, clueh)
 
         self.draw_notes(scr)
+        self.draw_solvers(scr)
 
-        # draw solver list
+    def draw_solvers(self, scr):
         y = 0
         x = 0
         colnames = []
@@ -448,14 +453,14 @@ class Crossword:
             colnames.append(name)
             clipdraw(scr, grid_bottom+y+1, grid_left+x, name, attr)
             y += 1
-            if y >= self.maxrows:
+            if y >= self.max_solver_rows:
                 y = 0
                 x += max(len(x) for x in colnames)+3
                 colnames = []
 
     @property
-    def maxrows(self):
-        return max(3, len(self.guessercolors)//5+1)
+    def max_solver_rows(self):
+        return max(1, len(self.guessercolors)//5+1)
 
     def get_user_attr(self, username):
         return getattr(opt, self.guessercolors.get(username, 'fg')+'attr')
@@ -464,21 +469,27 @@ class Crossword:
         h, w = scr.getmaxyx()
         notes = self.notes.get(self.curr_dirnum, None)
         if not notes: return
-        curr_y = grid_bottom+self.maxrows+2
+        curr_y = grid_bottom+self.max_solver_rows+2
 
         maxnamew = max(len(x['user']) for x in notes)
         maxcluew = max(min(w-clue_left-1-1, 40), 1)
         maxw = clue_left+maxcluew-20-maxnamew
-        for note in notes:
+        if self.starting_note < 0:
+            self.starting_note = 0
+        if self.starting_note > len(notes)-2:
+            self.starting_note = len(notes)-2
+        for note in notes[self.starting_note:]:
             localtime = time.strftime("%b %2d  %H:%M", time.localtime(note.get("time", time.time())))
-            username = f' {localtime} {note["user"]}  '
+            username = f' {localtime} <{note["user"]}> '
             attr = self.get_user_attr(note["user"])
             clipdraw(scr, curr_y, grid_left, username, attr)
             lines = textwrap.wrap(note['note'], width=maxw)
             for j, line in enumerate(lines):
                 line = ' ' + line + ' '*(maxw-len(line)+1)
-                clipdraw(scr, curr_y, grid_left+16+maxnamew, line, attr)
+                clipdraw(scr, curr_y, grid_left+17+maxnamew, line, attr)
                 curr_y += 1
+            if curr_y >= h-2:
+                break
 
     def draw_hotkeys(self, scr):
         self.hotkeys = {}
@@ -500,6 +511,7 @@ class Crossword:
         if self.cell(self.cursor_y+i, self.cursor_x) == '#' or self.cursor_y+i < 0 or self.cursor_y+i >= self.nrows:
             return
         self.cursor_y += i
+        self.starting_note = 0
 
     def cursorRight(self, n):
         i = n
@@ -508,6 +520,7 @@ class Crossword:
         if self.cell(self.cursor_y, self.cursor_x+i) == '#' or self.cursor_x+i < 0 or self.cursor_x+i >= self.ncols:
             return
         self.cursor_x += i
+        self.starting_note = 0
 
     def cursorMove(self, n):
         if self.filldir == 'A':
@@ -754,7 +767,7 @@ class CrosswordPlayer:
         if k == '^Y':
             if self.xd.curr_dirnum:
                 try:
-                    clipdraw(scr, h-2, 1, 'note:', opt.fgattr)
+                    clipdraw(scr, h-2, 1, 'note: ', opt.fgattr)
                     note = visidata.vd.editline(scr, h-2, 7, w-8)
                     self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note, time=time.time())
                 except Exception as e:
@@ -782,7 +795,14 @@ class CrosswordPlayer:
                 xd.cursor_x, xd.cursor_y = xd.clue_layout[y][-1][0]
             else:
                 self.status(f'{bstate}({y},{x})')
-
+        elif k in ['KEY_NPAGE', '^F']:
+            xd.starting_note += 1
+        elif k in ['KEY_PPAGE', '^B']:
+            xd.starting_note -= 1
+        elif k == 'KEY_HOME':
+            xd.starting_note = 0
+        elif k == 'KEY_END':
+            xd.starting_note = len(xd.notes[xd.curr_dirnum])-2
         elif k == 'KEY_DOWN': xd.cursorDown(+1); xd.undos.clear()
         elif k == 'KEY_UP': xd.cursorDown(-1); xd.undos.clear()
         elif k == 'KEY_LEFT': xd.cursorRight(-1); xd.undos.clear()
