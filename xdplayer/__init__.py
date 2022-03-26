@@ -436,29 +436,48 @@ class Crossword:
         self.draw_notes(scr)
 
         # draw solver list
-        for i, (user, color) in enumerate(self.guessercolors.items()):
-            s = '%s (%d%%)' % (user, sum(1 for (x,y), r in self.guesser.items() if r.get('user', '') == user and self.cell(y, x) != UNFILLED)*100/self.ncells)
-            clipdraw(scr, grid_bottom+i+1, grid_left, s, getattr(opt, color+'attr'))
+        y = 0
+        x = 0
+        colnames = []
+        nameattrs = [
+            ('%s (%d%%)' % (user, sum(1 for (x,y), r in self.guesser.items() if r.get('user', '') == user and self.cell(y, x) != UNFILLED)*100/self.ncells), getattr(opt, color+'attr'))
+                for user, color in self.guessercolors.items()
+        ]
+
+        for name, attr in nameattrs:
+            colnames.append(name)
+            clipdraw(scr, grid_bottom+y+1, grid_left+x, name, attr)
+            y += 1
+            if y >= self.maxrows:
+                y = 0
+                x += max(len(x) for x in colnames)+3
+                colnames = []
+
+    @property
+    def maxrows(self):
+        return max(3, len(self.guessercolors)//5+1)
 
     def get_user_attr(self, username):
         return getattr(opt, self.guessercolors.get(username, 'fg')+'attr')
 
     def draw_notes(self, scr):
         h, w = scr.getmaxyx()
-        maxw = max(min(w-clue_left-1, 40), 1)
         notes = self.notes.get(self.curr_dirnum, None)
         if not notes: return
-        curr_y = grid_bottom+2
+        curr_y = grid_bottom+self.maxrows+2
 
+        maxnamew = max(len(x['user']) for x in notes)
+        maxcluew = max(min(w-clue_left-1-1, 40), 1)
+        maxw = clue_left+maxcluew-20-maxnamew
         for note in notes:
-            localtime = time.strftime("%b %d  %H:%M", time.localtime(note.get("time", time.time())))
+            localtime = time.strftime("%b %2d  %H:%M", time.localtime(note.get("time", time.time())))
             username = f' {localtime} {note["user"]}  '
             attr = self.get_user_attr(note["user"])
-            clipdraw(scr, curr_y, grid_right-len(username)+3, username, attr)
+            clipdraw(scr, curr_y, grid_left, username, attr)
             lines = textwrap.wrap(note['note'], width=maxw)
             for j, line in enumerate(lines):
                 line = ' ' + line + ' '*(maxw-len(line)+1)
-                clipdraw(scr, curr_y, grid_right+3, line, attr)
+                clipdraw(scr, curr_y, grid_left+16+maxnamew, line, attr)
                 curr_y += 1
 
     def draw_hotkeys(self, scr):
