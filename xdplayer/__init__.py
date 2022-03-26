@@ -572,6 +572,11 @@ class Crossword:
         if not os.path.exists(self.guessfn):
             Path(self.guessfn).touch(0o777)
 
+    @property
+    def rebus_chars(self):
+        'return set of rebus chars'
+        return {v[0]:k for k, v in self.rebus.items()}
+
     def update_rebus(self, r, x, y):
         'r (rebus string), x, y (positions in grid)'
 
@@ -590,7 +595,7 @@ class Crossword:
 
         if r not in self.rebus:
             # find new rebus char
-            usedchars = set(x[0] for x in self.rebus.values())
+            usedchars = set(self.rebus_chars.keys())
             newchar = sorted(list(set(opt.rebuschars) - usedchars))[0]
             self.rebus[r] = (newchar, set())
         self.rebus[r][1].add((x, y))
@@ -807,9 +812,11 @@ class CrosswordPlayer:
                 xd.circled.remove(coord)
             else:
                 xd.circled.append(coord)
+        elif k in xd.rebus_chars:
+            xd.setAtCursor(xd.rebus_chars[k])
         elif opt.hotkeys and k in xd.hotkeys:
             opt.cycle(xd.hotkeys[k])
-        elif k.upper() in (string.ascii_uppercase+string.digits):
+        elif k.upper() in string.ascii_uppercase:
             xd.setAtCursor(k.upper())
             xd.cursorMove(+1)
 
