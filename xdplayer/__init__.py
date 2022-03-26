@@ -755,7 +755,7 @@ class CrosswordPlayer:
             if self.xd.curr_dirnum:
                 try:
                     clipdraw(scr, h-2, 1, 'note:', opt.fgattr)
-                    note = visidata.vd.editline(scr, h-2, 7, w-1)
+                    note = visidata.vd.editline(scr, h-2, 7, w-8)
                     self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note, time=time.time())
                 except Exception as e:
                     self.status(str(e))
