@@ -27,14 +27,14 @@ def gen_xd(puzfn, clear=True):
     yield ''
 
     def is_block(x, y):
-         return x < 0 or y < 0 or grid[y][x] in BLOCK
+         return x < 0 or y < 0 or x >= p.width or y >= p.height or grid[y][x] in BLOCK
 
     i = 0   # index into p.clues
     n = 0   # printed clue number
     for y, row in enumerate(grid):
         for x, cell in enumerate(row):
-            start_across = is_block(x-1, y) and not is_block(x, y)
-            start_down = is_block(x, y-1) and not is_block(x, y)
+            start_across = is_block(x-1, y) and not is_block(x, y) and not is_block(x+1, y)
+            start_down = is_block(x, y-1) and not is_block(x, y) and not is_block(x, y+1)
 
             if start_across or start_down:
                 n += 1
