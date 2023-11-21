@@ -20,8 +20,7 @@ from collections import namedtuple, defaultdict
 from .tui import *
 from .puz2xd import gen_xd
 from .ddwplay import AnimationMgr
-import visidata
-from visidata import clipdraw, EscapeException
+from .cliptext import editline, clipdraw
 
 UNFILLED = '.'
 
@@ -79,6 +78,10 @@ opt = OptionsObject(
 
 BoardClue = namedtuple('BoardClue', 'dir num clue answer coords')
 Cross = namedtuple('Cross', 'across down')
+
+class EscapeException(BaseException):
+    'Inherits from BaseException to avoid "except Exception" clauses. Do not use a blanket "except:" or the task will be uncancelable.'
+    pass
 
 @functools.lru_cache
 def half(colors, fg_coloropt, bg_coloropt):
@@ -761,14 +764,14 @@ class CrosswordPlayer:
             scr.clear()
         if k == '^R':
             clipdraw(scr, h-2, 1, 'rebus:', opt.fgattr)
-            r = visidata.vd.editline(scr, h-2, 8, w-1)
+            r = editline(scr, h-2, 8, w-1)
             xd.setAtCursor(r.upper())
 
         if k == '^Y':
             if self.xd.curr_dirnum:
                 try:
                     clipdraw(scr, h-2, 1, 'note: ', opt.fgattr)
-                    note = visidata.vd.editline(scr, h-2, 7, w-8)
+                    note = editline(scr, h-2, 7, w-8)
                     self.xd.writeEntry(dirnum=self.xd.curr_dirnum, note=note, time=time.time())
                 except Exception as e:
                     self.status(str(e))
