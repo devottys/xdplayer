@@ -11,6 +11,10 @@ disp_oddspace = '\u00b7' # displayable character for odd whitespace
 
 disp_column_fill = ' '
 
+class EscapeException(BaseException):
+    'Inherits from BaseException to avoid "except Exception" clauses. Do not use a blanket "except:" or the task will be uncancelable.'
+    pass
+
 ### Curses helpers
 
 # ZERO_WIDTH_CF is from wcwidth:
