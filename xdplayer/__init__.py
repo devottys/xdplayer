@@ -153,6 +153,8 @@ class Crossword:
         self.clues = {}  # 'A1' -> Clue
         for clue in cluestr.splitlines():
             if clue:
+                if '. ' not in clue:
+                    continue  # skip xd 3.0 metadata lines
                 if ' ~ ' in clue:
                     clue, answer = clue.split(' ~ ')
                 else:
