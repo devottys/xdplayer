@@ -4,12 +4,25 @@ A compact and colorful terminal interface for solving crossword puzzles.
 
 ![xddemo](xddemo.gif)
 
-- requires Python3 (no external library dependencies)
-- works in classic 80x25 terminal size (up to 21x21 puzzle)
-- requires 256-color terminal
+- very small terminal form factor
+  - can play 21x21 sunday puzzles in classic 80x25 terminal size
+  - can play huge puzzles like nyt mega 50x50 in larger terminals
 - supports crosswords in [.xd format](https://github.com/century-arcade/xd/) and AcrossLite .puz format
-- Install: `pip3 install git+https://github.com/devottys/xdplayer.git`
-- Usage: `xdplayer <file1.xd|file1.puz> ... <fileN.xd|fileN.puz>`
+- supports multiple players and stats
+- notes attached to individual clues
+
+## Requirements
+
+- Python3.8 (no external library dependencies)
+- 256-color terminal
+
+## Install
+
+`pip3 install git+https://github.com/devottys/xdplayer.git`
+
+## Usage
+
+`xdplayer <file.xd|file.puz>`
 
 There are some crosswords to play with in `samples/` and a collection of xds on [xd.saul.pw/data](https://xd.saul.pw/data).
 
